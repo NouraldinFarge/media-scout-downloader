@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media Scout Workspace</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="workspace-shell">
+    <header class="workspace-header">
+      <div class="brand">
+        <span class="brand-glyph" aria-hidden="true">◇</span>
+        <div>
+          <p class="eyebrow">Media Scout</p>
+          <h1>Workspace</h1>
+        </div>
+      </div>
+      <button id="refreshState" class="button ghost" type="button">Rescan</button>
+    </header>
+
+    <nav class="route-nav" aria-label="Workspace routes">
+      <button data-route="home" type="button">Home <span id="countHome">0</span></button>
+      <button data-route="inspector" type="button">Inspector <span id="countInspector">0</span></button>
+      <button data-route="queue" type="button">Queue <span id="countQueue">0</span></button>
+      <button data-route="batch" type="button">Batch <span id="countBatch">0</span></button>
+      <button data-route="reports" type="button">Reports</button>
+      <button data-route="diagnostics" type="button">Diagnostics</button>
+      <button data-route="help" type="button">Help</button>
+    </nav>
+
+    <main class="route-container">
+      <section id="home" class="route" aria-label="Home"></section>
+      <section id="inspector" class="route hidden" aria-label="Inspector"></section>
+      <section id="queue" class="route hidden" aria-label="Queue"></section>
+      <section id="batch" class="route hidden" aria-label="Batch"></section>
+      <section id="reports" class="route hidden" aria-label="Reports"></section>
+      <section id="diagnostics" class="route hidden" aria-label="Diagnostics"></section>
+      <section id="help" class="route hidden" aria-label="Help"></section>
+    </main>
+
+    <footer class="workspace-footer">
+      <span id="workspaceStatus" role="status">Loading active-tab evidence…</span>
+      <button id="openOptions" class="link-button" type="button">Open Permission Settings</button>
+    </footer>
+  </div>
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>

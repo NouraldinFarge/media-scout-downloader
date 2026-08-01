@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media Scout Downloader Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="settings-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Media Scout Downloader</p>
+        <h1>Settings with consequences</h1>
+        <p>Control defaults, permissions, privacy, filenames, stream processing, diagnostics, and safe release evidence from one place.</p>
+      </div>
+      <div class="hero-badges" aria-label="Settings highlights">
+        <span>MV3</span>
+        <span>Local only</span>
+        <span>Redacted reports</span>
+      </div>
+    </header>
+
+    <nav class="quick-nav" aria-label="Settings sections">
+      <a href="#general">General</a>
+      <a href="#downloads">Downloads</a>
+      <a href="#detection">Detection</a>
+      <a href="#streams">Streams</a>
+      <a href="#files">File types</a>
+      <a href="#filenames">Filenames</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#accessibility">Accessibility</a>
+      <a href="#diagnostics">Diagnostics</a>
+      <a href="#about">About</a>
+    </nav>
+
+    <section id="general" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">General</p>
+          <h2>Surface defaults and clarity</h2>
+          <p class="muted">The popup stays recommendation-first; advanced tasks open specific side-panel routes.</p>
+        </div>
+        <span class="soft-pill">Preview</span>
+      </div>
+      <div class="settings-grid">
+        <label class="field">
+          <span>Default workflow</span>
+          <select disabled>
+            <option>Popup recommendation → named side-panel route</option>
+          </select>
+          <small>Required by v10: popup makes the instant decision; side panel owns inspector, queue, batch, reports, diagnostics, and help.</small>
+        </label>
+        <label class="field switch-field">
+          <span>Notifications</span>
+          <label class="switch inline"><input id="notifications" type="checkbox"><span>Show completion and attention prompts</span></label>
+          <small>Browser-managed Save As and safety prompts still appear in Chrome/Brave.</small>
+        </label>
+        <label class="field switch-field">
+          <span>Manual HLS converter</span>
+          <label class="switch inline"><input id="showManualM3u8Converter" type="checkbox"><span>Show manual .m3u8 route in advanced UI</span></label>
+          <small>Hidden by default so the popup never becomes a raw URL editor.</small>
+        </label>
+      </div>
+    </section>
+
+    <section id="downloads" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Downloads</p>
+          <h2>Queue, prompts, conflicts, and browser state</h2>
+        </div>
+        <span class="soft-pill">Browser-managed</span>
+      </div>
+      <div class="settings-grid">
+        <label class="field">
+          <span>Max parallel downloads</span>
+          <input id="maxParallelDownloads" type="number" min="1" max="6" step="1">
+          <small>Whole download jobs. Browser Save As prompts can still pause a job.</small>
+        </label>
+        <label class="field">
+          <span>Duplicate filename behavior</span>
+          <select id="duplicateBehavior">
+            <option value="auto-number">Auto-number</option>
+            <option value="ask">Ask</option>
+            <option value="overwrite">Overwrite if Chrome allows it</option>
+          </select>
+          <small id="duplicateConsequence">Auto-number avoids silent overwrite risk.</small>
+        </label>
+        <label class="field">
+          <span>Queue history retention</span>
+          <select id="queueHistoryRetentionDays">
+            <option value="0">Do not persist queue history</option>
+            <option value="1">1 day</option>
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+          </select>
+          <small>Stores privacy-safe queue metadata only; no raw URLs, page URLs, hostnames, or filenames.</small>
+        </label>
+        <label class="field">
+          <span>Episode page scan parallelism</span>
+          <input id="episodeBatchScanParallelism" type="number" min="1" max="4" step="1">
+          <small>How many same-series episode pages can be opened/scanned at once after batch preview confirmation.</small>
+        </label>
+        <label class="field">
+          <span>Confirm episode batch above</span>
+          <input id="confirmLargeEpisodeBatchThreshold" type="number" min="2" max="48" step="1">
+          <small>Side panel Batch asks before opening background episode tabs above this count.</small>
+        </label>
+      </div>
+    </section>
+
+    <section id="detection" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Detection</p>
+          <h2>Permission health and site access</h2>
+          <p class="muted">Network detection is off until host access is granted; active-tab DOM scanning remains available.</p>
+        </div>
+      </div>
+      <div id="permissionHealth" class="notice-copy">Current permission health loads after settings are read.</div>
+      <div class="actions">
+        <button id="grantAllSiteAccess" type="button">Grant network detection for all sites</button>
+        <button id="revokeAllSiteAccess" type="button">Revoke all-site network detection</button>
+      </div>
+    </section>
+
+    <section id="streams" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Stream processing</p>
+          <h2>HLS method priority and compatibility labels</h2>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <label class="field">
+          <span>Default HLS output method</span>
+          <select id="hlsOutputMethod">
+            <option value="smart-mp4">Smart MP4 — probe then choose safest standalone path</option>
+            <option value="mp4-remux">MP4 remux — TS/H.264/AAC to MP4</option>
+            <option value="timestamp-fixed-ts">Timestamp-fixed TS — safer TS fallback</option>
+            <option value="ts-concat">Raw TS concat — fastest, may desync</option>
+            <option value="playlist-only">Save playlist only</option>
+            <option value="external-helper">External helper handoff — save instructions</option>
+          </select>
+          <small>Smart MP4 is recommended. fMP4/CMAF, separate audio, and live partial streams remain limitation states unless safely supported.</small>
+        </label>
+        <label class="field">
+          <span>Processing impact</span>
+          <select id="hlsWorkMode">
+            <option value="gentle">Gentle — smoother browser, slower</option>
+            <option value="balanced">Balanced — recommended</option>
+            <option value="fast">Fast — more CPU/network pressure</option>
+          </select>
+          <small>Controls yield points and adaptive segment ramp-up.</small>
+        </label>
+        <label class="field">
+          <span>Default HLS variant</span>
+          <select id="hlsVariantPreference">
+            <option value="highest">Highest bandwidth / quality</option>
+            <option value="lowest">Lowest bandwidth / smaller file</option>
+          </select>
+          <small>Used for master playlists with multiple variants.</small>
+        </label>
+        <label class="field">
+          <span>HLS segment parallelism</span>
+          <input id="segmentParallelism" type="number" min="1" max="16" step="1">
+          <small>Upper limit for adaptive parallel segment fetches.</small>
+        </label>
+        <label class="field">
+          <span>Segment retry limit</span>
+          <input id="segmentRetryLimit" type="number" min="0" max="4" step="1">
+          <small>Retries transient segment failures only. Access-control failures stop safely.</small>
+        </label>
+      </div>
+      <div id="streamCapabilityPreview" class="capability-strip" aria-live="polite"></div>
+    </section>
+
+    <section id="files" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Detection registry</p>
+          <h2>Enabled file types</h2>
+          <p class="muted">Groups are collapsed by default so the broad registry stays readable.</p>
+        </div>
+        <input id="fileTypeSearch" class="search" type="search" placeholder="Filter types…" autocomplete="off">
+      </div>
+      <div class="type-toolbar">
+        <button id="enableCoreTypes" type="button">Enable core media</button>
+        <button id="enableAllTypes" type="button">Enable all</button>
+        <button id="disableMetadataTypes" type="button">Disable noisy metadata</button>
+      </div>
+      <div id="fileTypes" class="file-type-list"></div>
+    </section>
+
+    <section id="filenames" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Filenames</p>
+          <h2>Template, subfolder, and dry-run safety</h2>
+        </div>
+      </div>
+      <div class="settings-grid single">
+        <label class="field wide">
+          <span>Filename template</span>
+          <input id="filenameTemplate" type="text" placeholder="{tabTitle}{indexSuffix}.{extension}">
+          <small>Tokens: {tabTitle}, {rawTabTitle}, {hostname}, {resolution}, {date}, {index}, {indexSuffix}, {extension}.</small>
+        </label>
+        <label class="field wide">
+          <span>Preferred download subfolder</span>
+          <input id="preferredSubfolder" type="text" placeholder="Media Scout Downloader">
+          <small>Leave empty to save directly to Chrome’s default download location.</small>
+        </label>
+      </div>
+      <div id="filenameDryRun" class="dry-run" aria-live="polite">Filename dry-run loads after settings are read.</div>
+    </section>
+
+    <section id="privacy" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Privacy</p>
+          <h2>Redaction, local data, and exact deletion scope</h2>
+        </div>
+      </div>
+      <div class="toggle-grid">
+        <label class="switch"><input id="includeSensitiveUrlsInReports" type="checkbox"><span>Allow full URLs in diagnostic reports after confirmation</span></label>
+        <label class="switch"><input id="debugLogs" type="checkbox"><span>Enable debug logs</span></label>
+      </div>
+      <p class="notice-copy">Default reports include versions, settings summary, candidate evidence with URLs redacted, queue timeline, and error categories. Raw URLs, request headers, cookies, tokens, and screenshots are excluded by default.</p>
+      <div class="data-inventory">
+        <div><strong>Settings</strong><span>chrome.storage.local</span></div>
+        <div><strong>Queue history</strong><span>privacy-safe metadata</span></div>
+        <div><strong>Diagnostics</strong><span>strategy counts and error categories</span></div>
+        <div><strong>Reports</strong><span>generated only on request</span></div>
+      </div>
+      <div class="actions">
+        <button id="clearQueueHistory" type="button">Clear queue history</button>
+        <button id="clearCache" type="button">Clear detected media cache</button>
+      </div>
+    </section>
+
+    <section id="accessibility" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Appearance and accessibility</p>
+          <h2>High clarity defaults</h2>
+        </div>
+        <span class="soft-pill">Always on</span>
+      </div>
+      <div class="settings-grid">
+        <label class="field">
+          <span>Theme</span>
+          <select disabled><option>Dark, forced-colors aware</option></select>
+          <small>Gradients are disabled in forced-colors mode; focus rings use strong outlines.</small>
+        </label>
+        <label class="field">
+          <span>Motion</span>
+          <select disabled><option>Respects reduced motion</option></select>
+          <small>No shimmer or animated progress sweeps when reduced motion is requested.</small>
+        </label>
+        <label class="field">
+          <span>Labels</span>
+          <select disabled><option>Visible labels for critical actions</option></select>
+          <small>Icon-only controls receive aria-labels; core routes keep visible text labels.</small>
+        </label>
+      </div>
+    </section>
+
+    <section id="diagnostics" class="card danger-zone">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">Diagnostics</p>
+          <h2>Repair tools and danger-zone actions</h2>
+          <p class="muted">Routine refresh/reload is removed from the popup and lives here with explanation.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="runSelfTests" type="button">Run self-tests</button>
+        <button id="resetDiagnostics" type="button">Reset learning data</button>
+      </div>
+      <pre id="testResults" aria-live="polite"></pre>
+    </section>
+
+    <section id="about" class="card">
+      <div class="card-heading">
+        <div>
+          <p class="section-kicker">About</p>
+          <h2>Support summary</h2>
+        </div>
+      </div>
+      <p class="notice-copy">Use the side-panel Report Preview route to generate a redacted local evidence bundle before sharing support details.</p>
+      <button id="copySupportSummary" type="button">Copy support summary</button>
+    </section>
+
+    <footer class="bar">
+      <div>
+        <strong>Pending changes</strong>
+        <span id="status" role="status"></span>
+      </div>
+      <button id="save" type="button" class="primary">Save settings</button>
+    </footer>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

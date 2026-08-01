@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Media Scout Downloader",
+  "description": "Detects browser-visible media with stale-snapshot action blocking, current Options-aware CTAs, cleaned hard-rescan injection, fixed options saving, privacy-tight reports, recommendation-first popup, and persistent side-panel workspace.",
+  "version": "3.7.11",
+  "minimum_chrome_version": "114",
+  "action": {
+    "default_title": "Media Scout Downloader",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "32": "assets/icons/icon32.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "options_page": "src/options/options.html",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "scripting",
+    "storage",
+    "webRequest",
+    "sidePanel",
+    "notifications"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none';"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/sidepanel.html"
+  }
+}

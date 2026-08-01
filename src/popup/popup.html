@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media Scout Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup-shell" aria-live="polite">
+    <header class="app-header">
+      <button id="openHome" class="brand-block" type="button" aria-label="Open Side Panel Home">
+        <span class="brand-glyph" aria-hidden="true">◇</span>
+        <span>
+          <span class="eyebrow">Media Scout</span>
+          <strong>Downloader</strong>
+        </span>
+      </button>
+      <div class="header-actions">
+        <span id="domainTrust" class="trust-chip">Local only</span>
+        <button id="optionsButton" class="icon-button" type="button" aria-label="Open Permission Settings">⚙</button>
+      </div>
+    </header>
+
+    <section class="page-card" aria-label="Current page">
+      <div class="page-icon" aria-hidden="true">▣</div>
+      <div class="page-main">
+        <p id="pageDomain" class="page-domain">Active tab</p>
+        <h1 id="pageTitle">Starting scanner…</h1>
+        <div class="page-meta">
+          <span id="pageState">Preparing active-tab detection</span>
+          <span id="scanAge">Now</span>
+          <span id="permissionChip" class="chip">Basic scan</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="recommendationCard" class="recommendation-card" aria-label="Recommendation">
+      <div class="rec-topline">
+        <span id="capabilityBadge" class="capability-badge">Scanning</span>
+        <span id="confidenceBadge" class="confidence-badge">Current tab</span>
+      </div>
+      <h2 id="recommendationTitle">Looking for browser-visible media…</h2>
+      <p id="recommendationBody">Start playback if the page has not exposed media yet.</p>
+      <div id="candidatePreview" class="candidate-preview hidden"></div>
+      <div id="blockerText" class="blocker-text hidden"></div>
+    </section>
+
+    <section class="cta-row" aria-label="Recommended actions">
+      <button id="primaryAction" class="button primary" type="button" data-action-button>Scan</button>
+      <button id="secondaryAction" class="button secondary" type="button" data-action-button>Open Inspector</button>
+    </section>
+
+    <section id="queueMini" class="queue-mini" aria-label="Queue status">
+      <div>
+        <p class="eyebrow">Queue</p>
+        <strong id="queueSummary">Idle</strong>
+      </div>
+      <button id="queueButton" class="button ghost" type="button">Open Queue</button>
+    </section>
+
+    <footer class="popup-footer">
+      <button id="privacyButton" type="button">Local-only privacy</button>
+      <button id="reportButton" type="button">Report preview</button>
+      <button id="sidePanelButton" type="button">Side panel</button>
+    </footer>
+
+    <p id="liveStatus" class="live-status" role="status"></p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "media-scout-downloader",
+  "private": true,
+  "version": "3.7.11",
+  "type": "module",
+  "scripts": {
+    "test": "node test-harness/run-tests.mjs",
+    "check": "npm test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
