@@ -20,7 +20,7 @@ console.log(`Formatted ${changed} file${changed === 1 ? '' : 's'}; checked ${fil
 async function walk(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (['.git', 'dist', 'node_modules'].includes(entry.name)) continue;
+    if (['.git', 'coverage', 'dist', 'node_modules', 'release', 'test-results'].includes(entry.name)) continue;
     const target = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await walk(target));
     else if (entry.isFile()) files.push(target);

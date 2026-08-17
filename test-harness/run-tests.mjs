@@ -11,7 +11,7 @@ import { MediaDetector, parseHlsInspection } from '../src/background/media-detec
 import { DiagnosticsManager } from '../src/background/diagnostics-manager.js';
 import { DOWNLOAD_STATUSES, ERROR_CATEGORIES, MEDIA_TYPES, MESSAGE_TYPES, STORAGE_KEYS } from '../src/shared/constants.js';
 import { buildExtensionState, summarizeUrl } from '../src/shared/report-utils.js';
-import { buildReportContext, reportContextsMatch, reportFilesDigest } from '../src/shared/report-privacy.js';
+import { buildReportContext, redactKnownReportText, reportContextsMatch, reportFilesDigest } from '../src/shared/report-privacy.js';
 import { sanitizeLogValue } from '../src/shared/logger.js';
 import { validateMediaUrl, validateMessage } from '../src/shared/validators.js';
 
@@ -62,6 +62,8 @@ assert.equal(redactedReport.includes('camel-case-secret'), false, 'report redact
 const summarizedUrl = summarizeUrl('https://example.com/private/path?account_email=user%40example.com&token=secret');
 assert.equal(summarizedUrl.queryParameterCount, 2, 'redacted URL summaries retain only the number of query parameters');
 assert.equal(JSON.stringify(summarizedUrl).includes('account_email'), false, 'redacted URL summaries do not retain query-parameter names');
+const bulkRedactedText = redactKnownReportText('Alpha.Example PRIVATE(file)+ and alpha.example', ['example', 'alpha.example', 'PRIVATE(file)+']);
+assert.equal(/alpha\.example|private\(file\)\+|\bexample\b/i.test(bulkRedactedText), false, 'bulk identifying-value redaction is case-insensitive, regex-safe, and handles overlapping values');
 assert.equal(buildExtensionState({}).schemaVersion, 7, 'report schema advances when the privacy-preview contract changes');
 const sanitizedLog = JSON.stringify(sanitizeLogValue({ message: 'Failed https://private.invalid/watch?token=LOG_SECRET', localPath: 'C:\\Users\\Private\\file.mp4', password: 'LOG_PASSWORD' }));
 assert.equal(sanitizedLog.includes('LOG_SECRET'), false, 'warning/debug logging redacts URL query values');
@@ -104,6 +106,9 @@ assert.equal(sidepanelSource.includes('invalidateReportPreview'), true, 'side-pa
 assert.equal(sidepanelSource.includes('Screenshots.'), true, 'report UI explicitly states that screenshots are never included');
 const contentSource = await readFile(new URL('../src/content/content.js', import.meta.url), 'utf8');
 assert.equal(contentSource.includes('queryParameterNames'), false, 'runtime HLS errors do not retain sensitive query-parameter names');
+assert.equal(contentSource.includes('const MAX_HLS_BYTES = 128 * 1024 * 1024'), true, 'experimental HLS aggregate memory is capped at 128 MiB');
+assert.equal(contentSource.includes('const MAX_HLS_SEGMENT_BYTES = 24 * 1024 * 1024'), true, 'experimental HLS segments are capped at 24 MiB each');
+assert.equal(contentSource.includes('Math.floor(MAX_HLS_BYTES * 0.65)'), true, 'estimated HLS size rejects before the hard aggregate cap');
 const serviceWorkerSource = await readFile(new URL('../src/background/service-worker.js', import.meta.url), 'utf8');
 assert.equal(serviceWorkerSource.includes('The source tab was closed. Media Scout cleared its stale detections'), true, 'closing a monitored source tab broadcasts an authoritative UI reset');
 const pageScannerSource = await readFile(new URL('../src/content/page-media-scanner.js', import.meta.url), 'utf8');

@@ -668,6 +668,7 @@ function renderHelp(root) {
     el('section', { className: 'card' }, [
       heading('Help and limitations', 'Media Scout uses normal browser access only.'),
       el('p', { text: 'Download and conversion actions are only shown when a candidate is fresh, supported, permission-satisfied, source-available, not expired, not a duplicate suppression, and allowed by the browser download state.' }),
+      el('p', { text: 'In-browser HLS merge/remux is experimental and memory-bound. It rejects segments above 24 MiB, aggregate bytes above 128 MiB, and estimated streams earlier; playlist-only and external-helper notes remain available when policy allows.' }),
       el('p', { text: 'Encrypted HLS, DRM-protected streams, authenticated or signed short-lived links, browser-blocked pages, unsupported fMP4/CMAF layouts, and blocked CORS/auth requests are explained as limitations. Media Scout does not attempt bypass behavior.' }),
       el('p', { text: 'Raw URLs can contain private tokens. The popup never shows them, Inspector reveals them only after an explicit action, and reports are redacted by default.' })
     ]),
@@ -698,7 +699,7 @@ async function runModelSecondary(model) {
 async function requestCurrentSiteAccess() {
   const origin = state.siteAccess?.origin;
   if (!origin) return setStatus('No current-site origin is available for permission request.');
-  let granted = false;
+  let granted;
   try {
     if (chrome.permissions?.request) {
       granted = await chrome.permissions.request({ origins: [origin] });

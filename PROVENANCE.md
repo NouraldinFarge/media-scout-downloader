@@ -1,6 +1,6 @@
 # Source, asset, fixture, and AI provenance
 
-Status: private candidate 3.7.13, reviewed 2026-08-17.
+Status: private release candidate 3.7.13, reviewed 2026-08-17. Project owner and author: Nouraldin Farge.
 
 ## Distribution and license status
 
@@ -41,9 +41,9 @@ No font file is bundled. CSS names `Inter` first and then uses platform/system f
 
 ## Test fixtures and report samples
 
-- P0 automated fixtures are code-generated strings, in-memory manifest structures, synthetic task objects, reserved `.invalid` domains, obvious non-working secret/credential placeholders, Unicode text, and traversal-shaped names. They contain no real account, private site, token, local path, or copyrighted media.
+- Automated fixtures include code-generated strings, in-memory manifest structures, synthetic task objects, reserved `.invalid` domains, obvious non-working secret/credential placeholders, Unicode text, traversal-shaped names, and a loopback-only browser fixture library. They contain no real account, private site, token, personal local path, or copyrighted media.
 - `test-harness/generate-sanitized-report-sample.mjs` creates the saved default-redacted report evidence from a fictional `Aurora Field Lab` fixture. The raw reserved-domain fixture remains in source; the saved report contains only redacted correlation values and static product text.
-- No third-party audio/video fixture is stored in the P0 tree. Any P1 real-browser media fixture must be original, programmatically generated, public-domain, or permissively licensed with an exact source/license record before use.
+- The tracked browser media is generated solely from FFmpeg `testsrc2`, `color`, and `sine` sources plus original project caption text. `test-fixtures/site/generated/FIXTURE_MANIFEST.json` records every generated file hash and the exact FFmpeg version; consecutive FFmpeg 8.1.2 runs were byte-identical. The fixtures are test-only and cannot enter the extension upload ZIP.
 - Do not use Chrome/Chromium test media merely because it is publicly viewable; each file's stated license/provenance must be checked before redistribution.
 
 ## Documentation and source material
@@ -55,10 +55,9 @@ No font file is bundled. CSS names `Inter` first and then uses platform/system f
 
 ## Dependencies and external tools
 
-- P0 `npm ls --all` reports an empty package tree: there are no runtime or npm development dependencies at this checkpoint.
-- The repository workflow references pinned commits of GitHub's `actions/checkout` and `actions/setup-node`; both upstream projects publish MIT licenses. They execute only in CI and are not bundled into the extension.
-- Audit tools such as Git, Node.js, npm, Gitleaks, Semgrep, ImageMagick, and browser/testing tools are external review/build tools. Their licenses do not become the extension's license, and their versions/results belong in the evidence ledger.
-- A later P1 decision to add npm development tools must update `package-lock.json`, dependency audit results, `THIRD_PARTY_NOTICES.md`, and the SPDX SBOM. It must not preserve a stale “no dependencies” claim.
+- The shipped extension has zero runtime dependencies. Exact development-only dependencies are locked for ESLint, coverage, axe accessibility checks, and Playwright browser automation; they are not copied into `dist/` or the extension upload ZIP.
+- Repository workflows reference immutable commits of GitHub Actions. The CI workflow downloads Gitleaks 8.30.0 from its official release and verifies the archive SHA-256 before execution.
+- Audit tools such as Git, Node.js, npm, Gitleaks, Semgrep, ImageMagick, FFmpeg, CodeQL, and browser/testing tools are external review/build tools. Their licenses do not become the extension's license, and their versions/results belong in the evidence ledger and third-party notices.
 
 ## AI assistance and accountability
 

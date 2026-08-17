@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "generator": "test-harness/generate-fixtures.mjs",
+  "ffmpeg": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+  "provenance": "Synthetic FFmpeg generators and original project test copy only.",
+  "files": [
+    {
+      "path": "captions.vtt",
+      "bytes": 117,
+      "sha256": "7bbd7788c95358f08586cb05eb0919191b68cc85371de47203f7a0ed42b6871c"
+    },
+    {
+      "path": "fmp4/init.mp4",
+      "bytes": 1355,
+      "sha256": "edb988b24b6f5b71005f06610a9e2d96c04821a704983c1680775f02d828e1f7"
+    },
+    {
+      "path": "fmp4/media.m3u8",
+      "bytes": 147,
+      "sha256": "14152cb370779580e1bdad3e9d7d26a0ebbf034f286f3bb17b2f4a57ec697484"
+    },
+    {
+      "path": "fmp4/segment-00.m4s",
+      "bytes": 60518,
+      "sha256": "ae159b8900c2635791dfe75d65b083c37afb4cac8da2cd412d751348c8caf1d0"
+    },
+    {
+      "path": "hls/master.m3u8",
+      "bytes": 121,
+      "sha256": "3c22ce63fd480c7a5bead5294155d600b230ac1f58a7a973631b565cb4a0bc66"
+    },
+    {
+      "path": "hls/media.m3u8",
+      "bytes": 120,
+      "sha256": "4373b085bc7c504a3615da1ab04a8b458d0280e5557b6cc2fdb0566b08fa31c0"
+    },
+    {
+      "path": "hls/segment-00.ts",
+      "bytes": 68432,
+      "sha256": "6748fc745cf8edd6a91df213009e6f3a56a21cc0d34df84b018a6e0704c33fd9"
+    },
+    {
+      "path": "poster.png",
+      "bytes": 1508,
+      "sha256": "39ba020db54621f5ea1ccf095e1f8e04265fdbe87c3545bc6a3766daa425170b"
+    },
+    {
+      "path": "scout-demo.mp4",
+      "bytes": 48393,
+      "sha256": "a66ecf807b2b7b88abc9fd688985385aaa661782b22eb8169750ea59d0a1ceee"
+    },
+    {
+      "path": "scout-demo.webm",
+      "bytes": 36568,
+      "sha256": "8cd7a057a32914c5482e9050a0c2dcb74fdeb4f1a74704b00d6c6137a2579e37"
+    },
+    {
+      "path": "scout-tone.mp3",
+      "bytes": 16528,
+      "sha256": "f1295d6c6c61fe9d891d460122721133e58ab5b49c95c884098b0778e87e7c64"
+    }
+  ]
+}

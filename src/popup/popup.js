@@ -247,7 +247,7 @@ async function requestCurrentSiteAccess() {
     return;
   }
   setStatus(`Asking Chrome for access to ${origin}…`, 'info');
-  let granted = false;
+  let granted;
   try {
     if (chrome.permissions?.request) {
       granted = await chrome.permissions.request({ origins: [origin] });
@@ -329,7 +329,7 @@ async function openRoute(route = 'home') {
     await chrome.tabs.create({ url: fallbackUrl, active: true });
     window.close();
   } catch (error) {
-    throw new Error(error?.message || 'Could not open the side panel or fallback workspace tab.');
+    throw new Error(error?.message || 'Could not open the side panel or fallback workspace tab.', { cause: error });
   }
 }
 

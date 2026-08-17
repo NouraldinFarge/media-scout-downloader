@@ -53,7 +53,7 @@
       .replace(/\\\//g, '/')
       .replace(/\\u002f/gi, '/')
       .replace(/\\x2f/gi, '/')
-      .replace(/^["'({\[]+|["'),;\]}]+$/g, '');
+      .replace(/^["'({[]+|["'),;\]}]+$/g, '');
   }
 
   function extensionFromUrl(rawUrl) {
@@ -633,7 +633,7 @@
   }
 
   function describeFrame() {
-    let isTop = false;
+    let isTop;
     try { isTop = window.top === window.self; } catch (_error) { isTop = false; }
     return {
       url: clipText(location.href, 4096),
@@ -864,8 +864,6 @@
     const mime = context.mime || '';
     const extension = extensionFromUrl(normalizedUrl);
     const reasons = [];
-    let acceptedByBasicScanner = false;
-
     if (!rawUrl) reasons.push('empty-url');
     if (rawUrl && !normalizedUrl) reasons.push('invalid-url');
 
@@ -890,7 +888,7 @@
     if (mediaByMime) reasons.push('media-looking-mime');
     if (normalizedUrl?.startsWith('blob:')) reasons.push('blob-url-page-local');
 
-    acceptedByBasicScanner = Boolean(context.expectedMedia !== false && normalizedUrl && (mediaByUrl || mediaByMime));
+    const acceptedByBasicScanner = Boolean(context.expectedMedia !== false && normalizedUrl && (mediaByUrl || mediaByMime));
     if (!acceptedByBasicScanner && normalizedUrl && context.expectedMedia !== false) reasons.push('unsupported-extension-and-mime-for-basic-scan');
 
     return {

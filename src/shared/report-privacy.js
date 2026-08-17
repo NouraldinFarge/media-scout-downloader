@@ -155,10 +155,14 @@ export function collectSensitiveReportValues(...sources) {
 
 export function redactKnownReportText(text = '', sensitiveValues = []) {
   let output = String(text);
-  for (const rawValue of sensitiveValues) {
-    const value = String(rawValue || '');
-    if (value.length < 3 || !output.toLowerCase().includes(value.toLowerCase())) continue;
-    output = output.replace(new RegExp(escapeRegExp(value), 'gi'), '[identifying value omitted]');
+  const lowerText = output.toLowerCase();
+  const matchingValues = Array.from(new Set(sensitiveValues
+    .map((rawValue) => String(rawValue || ''))
+    .filter((value) => value.length >= 3 && lowerText.includes(value.toLowerCase()))))
+    .sort((left, right) => right.length - left.length);
+  for (let index = 0; index < matchingValues.length; index += 128) {
+    const alternatives = matchingValues.slice(index, index + 128).map(escapeRegExp).join('|');
+    output = output.replace(new RegExp(alternatives, 'gi'), '[identifying value omitted]');
   }
   return output;
 }
@@ -206,7 +210,7 @@ function replaceUrlLikeValues(text, transform) {
 
 function redactStandaloneSecrets(text = '') {
   return String(text)
-    .replace(/\bbearer\s+[a-z0-9._~+\/-]{8,}/gi, 'Bearer [redacted]')
+    .replace(/\bbearer\s+[a-z0-9._~+/-]{8,}/gi, 'Bearer [redacted]')
     .replace(/\beyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\b/gi, REDACTED_SECRET)
     .replace(/\b(?:github_pat_|gh[pousr]_|sk_(?:live|test)_|sk-(?:live|test)-|AKIA|ASIA)[a-z0-9_-]{8,}\b/gi, REDACTED_SECRET)
     .replace(/\b(authorization|cookie|credential|password|private[_ -]?key|secret|signature|token)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]');
@@ -361,7 +365,7 @@ function looksSensitiveQueryName(name = '') {
 function looksSecretValue(value = '') {
   const text = String(value || '').trim();
   if (!text) return false;
-  if (/^bearer\s+[a-z0-9._~+\/-]{8,}$/i.test(text)) return true;
+  if (/^bearer\s+[a-z0-9._~+/-]{8,}$/i.test(text)) return true;
   if (/^eyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}$/i.test(text)) return true;
   if (/^(?:github_pat_|gh[pousr]_|sk_(?:live|test)_|sk-(?:live|test)-|AKIA|ASIA)[a-z0-9_-]{8,}$/i.test(text)) return true;
   if (/^[a-f0-9]{32,}$/i.test(text)) return true;

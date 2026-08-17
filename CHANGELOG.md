@@ -10,6 +10,12 @@
 - Add synthetic regression coverage for identifiers, embedded/relative/blob/credential URLs, query data, secrets, Unicode, ZIP traversal, preview invalidation, stale source evidence, and preview/export equality.
 - Adopt the owner-approved MIT License and align SPDX/package/provenance wording while preserving the authorized-media and no-bypass boundary.
 - Run the official CodeQL JavaScript security-and-quality suite, resolve all eight initial maintainability findings, and verify a zero-result rerun against the corrected exact source commit.
+- Replace the misleading custom `lint`/`typecheck` labels with conventional ESLint, accurately named syntax and invariant checks, and pinned development-only tools while retaining zero runtime dependencies.
+- Enforce per-file coverage floors for report privacy/management, URL/message validation, and the download allow-list.
+- Add reproducible synthetic MP4, WebM, MP3, HLS, fMP4, subtitle, and artwork fixtures plus controlled Blob, DASH, CORS, authentication, expired-link, encrypted, separate-audio, live, low-latency, 6,001-segment, large-master, and 20,000-element simulations.
+- Add disposable-profile browser automation, axe/keyboard/focus/progress/responsive/media-preference checks, and repeatable popup/scan/render/report/queue/HLS performance budgets.
+- Mark in-browser HLS merge/remux experimental and reduce its ceilings from 64 MiB per segment / 768 MiB aggregate to 24 MiB per segment / 128 MiB aggregate with earlier estimate rejection.
+- Add pinned remote CI/CodeQL/browser-smoke workflows, allowlisted package inspection, verified Gitleaks download, dependency auditing, and deterministic extension/source/sample ZIP, SPDX SBOM, checksum, build-manifest, and provenance tooling.
 
 ## 3.7.12 - 2026-08-16
 
