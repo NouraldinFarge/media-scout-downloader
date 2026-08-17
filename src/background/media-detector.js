@@ -40,15 +40,63 @@ export class MediaDetector {
     this.scopedTabs = new Set();
     this.boundHeaderHandler = this._handleHeaders.bind(this);
     this.boundCompletedHandler = this._handleCompleted.bind(this);
+    this.listenerRefresh = Promise.resolve();
+    this.boundPermissionChangeHandler = () => this.refreshNetworkListeners().catch((error) => {
+      warn('Network-listener permission refresh failed safely', error?.message || error);
+    });
   }
 
-  start() {
-    const filter = { urls: ['http://*/*', 'https://*/*'], types: ['media', 'xmlhttprequest', 'other'] };
-    if (!chrome.webRequest.onHeadersReceived.hasListener(this.boundHeaderHandler)) {
-      chrome.webRequest.onHeadersReceived.addListener(this.boundHeaderHandler, filter, ['responseHeaders']);
+  async start() {
+    this._observePermissionChanges();
+    await this.refreshNetworkListeners();
+  }
+
+  stop() {
+    this._removeNetworkListeners();
+    for (const event of [chrome.permissions?.onAdded, chrome.permissions?.onRemoved]) {
+      if (event?.hasListener?.(this.boundPermissionChangeHandler)) {
+        event.removeListener(this.boundPermissionChangeHandler);
+      }
     }
-    if (!chrome.webRequest.onCompleted.hasListener(this.boundCompletedHandler)) {
+  }
+
+  refreshNetworkListeners() {
+    const synchronize = () => this._syncNetworkListenersToGrantedOrigins();
+    this.listenerRefresh = this.listenerRefresh.then(synchronize, synchronize);
+    return this.listenerRefresh;
+  }
+
+  _observePermissionChanges() {
+    for (const event of [chrome.permissions?.onAdded, chrome.permissions?.onRemoved]) {
+      if (event && !event.hasListener?.(this.boundPermissionChangeHandler)) {
+        event.addListener(this.boundPermissionChangeHandler);
+      }
+    }
+  }
+
+  async _syncNetworkListenersToGrantedOrigins() {
+    const permissions = await chrome.permissions.getAll();
+    const grantedOrigins = uniqueGrantedHttpOrigins(permissions?.origins);
+    this._removeNetworkListeners();
+    if (!grantedOrigins.length) return { listening: false, origins: [] };
+
+    const filter = { urls: grantedOrigins, types: ['media', 'xmlhttprequest', 'other'] };
+    try {
+      chrome.webRequest.onHeadersReceived.addListener(this.boundHeaderHandler, filter, ['responseHeaders']);
       chrome.webRequest.onCompleted.addListener(this.boundCompletedHandler, filter);
+    } catch (error) {
+      this._removeNetworkListeners();
+      throw error;
+    }
+    return { listening: true, origins: grantedOrigins };
+  }
+
+  _removeNetworkListeners() {
+    if (chrome.webRequest.onHeadersReceived.hasListener(this.boundHeaderHandler)) {
+      chrome.webRequest.onHeadersReceived.removeListener(this.boundHeaderHandler);
+    }
+    if (chrome.webRequest.onCompleted.hasListener(this.boundCompletedHandler)) {
+      chrome.webRequest.onCompleted.removeListener(this.boundCompletedHandler);
     }
   }
 
@@ -297,6 +345,14 @@ export class MediaDetector {
       item.safetyWarning = 'DASH manifest inspection failed with normal browser access. Media Scout may still save the manifest file directly, but it will not fetch segments, merge streams, decrypt content, or bypass restrictions.';
     }
   }
+}
+
+function uniqueGrantedHttpOrigins(origins = []) {
+  return [...new Set(
+    (Array.isArray(origins) ? origins : [])
+      .map((origin) => String(origin || '').trim())
+      .filter((origin) => /^https?:\/\//i.test(origin))
+  )].sort();
 }
 
 async function mapWithConcurrency(items, concurrency, mapper) {

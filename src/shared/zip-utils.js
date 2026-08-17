@@ -5,7 +5,7 @@ const crcTable = buildCrcTable();
  * Creates a small standards-compliant ZIP Blob with uncompressed text files.
  * This avoids external libraries/CDNs and keeps report generation local.
  */
-export function createZipBlob(files = []) {
+export function createZipBlob(files = [], { modifiedAt = new Date() } = {}) {
   const entries = normalizeZipEntries(files);
   const localParts = [];
   const centralParts = [];
@@ -16,7 +16,7 @@ export function createZipBlob(files = []) {
     const nameBytes = textEncoder.encode(name);
     const dataBytes = toBytes(file.content ?? '');
     const crc = crc32(dataBytes);
-    const mod = dosDateTime(new Date());
+    const mod = dosDateTime(modifiedAt);
 
     const localHeader = new Uint8Array(30 + nameBytes.length);
     const local = new DataView(localHeader.buffer);
@@ -128,9 +128,9 @@ function addPathSuffix(path, suffix) {
 }
 
 function dosDateTime(date) {
-  const year = Math.max(1980, date.getFullYear());
-  const dosDate = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
-  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const year = Math.max(1980, date.getUTCFullYear());
+  const dosDate = ((year - 1980) << 9) | ((date.getUTCMonth() + 1) << 5) | date.getUTCDate();
+  const dosTime = (date.getUTCHours() << 11) | (date.getUTCMinutes() << 5) | Math.floor(date.getUTCSeconds() / 2);
   return { date: dosDate, time: dosTime };
 }
 

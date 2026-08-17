@@ -1,6 +1,7 @@
 import { DOWNLOAD_STATUSES, HLS_OUTPUT_METHODS, MESSAGE_TYPES, MEDIA_TYPES, STORAGE_KEYS } from '../shared/constants.js';
 import { formatBytes, getHostname } from '../shared/utils.js';
 import { reportFileByteLength, reportFilesDigest } from '../shared/report-privacy.js';
+import { reconcileSiteAccessGrant } from '../shared/permission-state.js';
 import { createZipBlob, normalizeZipEntries } from '../shared/zip-utils.js';
 import {
   HLS_ACTIONS,
@@ -49,7 +50,8 @@ const state = {
   manualMethod: '',
   manualStatus: '',
   renderScheduled: false,
-  loadToken: 0
+  loadToken: 0,
+  permissionRevision: 0
 };
 
 const els = {
@@ -91,6 +93,14 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
+chrome.permissions?.onAdded?.addListener?.((permissions) => {
+  if (permissions?.origins?.length) reconcilePermissionDrift('changed');
+});
+
+chrome.permissions?.onRemoved?.addListener?.((permissions) => {
+  if (permissions?.origins?.length) reconcilePermissionDrift('revoked');
+});
+
 chrome.storage?.onChanged?.addListener?.((changes, areaName) => {
   if (areaName === 'local' && [STORAGE_KEYS.SETTINGS, STORAGE_KEYS.DIAGNOSTICS, STORAGE_KEYS.QUEUE_SUMMARY, STORAGE_KEYS.QUEUE_HISTORY].some((key) => changes[key])) {
     invalidateReportPreview('Local settings, diagnostics, or retained queue evidence changed after the preview was built.');
@@ -119,11 +129,12 @@ function wireShell() {
 
 async function loadState(type, payload = {}, label = 'Loading…') {
   const token = ++state.loadToken;
+  const permissionRevision = state.permissionRevision;
   setStatus(label);
   try {
     const response = await sendMessage({ type, ...payload });
     if (token !== state.loadToken) return;
-    applyState(response);
+    applyState(response, { preserveSiteAccess: permissionRevision !== state.permissionRevision });
     setStatus(statusFromScan(response));
   } catch (error) {
     if (token !== state.loadToken) return;
@@ -140,7 +151,7 @@ async function sendMessage(message) {
   return response;
 }
 
-function applyState(response = {}) {
+function applyState(response = {}, { preserveSiteAccess = false } = {}) {
   invalidateReportPreview('Workspace evidence was refreshed after the preview was built.');
   state.tab = response.tab || state.tab || null;
   if (Number.isInteger(response.tab?.id) && !isExtensionPageUrl(response.tab?.url || '')) state.sourceTabId = response.tab.id;
@@ -150,11 +161,32 @@ function applyState(response = {}) {
   if (!state.reportIncludeSensitiveTouched && !state.report && state.settings && Object.prototype.hasOwnProperty.call(state.settings, 'includeSensitiveUrlsInReports')) {
     state.reportIncludeSensitive = Boolean(state.settings.includeSensitiveUrlsInReports);
   }
-  state.siteAccess = response.siteAccess || state.siteAccess;
+  if (!preserveSiteAccess) state.siteAccess = response.siteAccess || state.siteAccess;
   state.diagnostics = response.diagnostics || state.diagnostics;
   state.episodeBatch = response.episodeBatch || state.episodeBatch;
   state.lastScan = response.scan || state.lastScan;
   if (!state.manualMethod && state.settings?.hlsOutputMethod) state.manualMethod = state.settings.hlsOutputMethod;
+}
+
+async function reconcilePermissionDrift(change = 'changed') {
+  const expected = state.siteAccess;
+  if (!expected?.origin || !chrome.permissions?.contains) return;
+  const revision = ++state.permissionRevision;
+  try {
+    const result = await reconcileSiteAccessGrant(expected, (query) => chrome.permissions.contains(query));
+    if (revision !== state.permissionRevision || state.siteAccess?.origin !== expected.origin || !result.checked) return;
+    state.siteAccess = result.siteAccess;
+    if (!result.changed) return;
+    invalidateReportPreview('Site-access permission changed after the preview was built.');
+    setStatus(result.siteAccess.granted
+      ? 'Site access changed in Chrome. Advanced detection is available.'
+      : `Site access was ${change === 'revoked' ? 'revoked' : 'changed'} in Chrome. Advanced detection is off; cached results remain until you rescan.`);
+    scheduleRender();
+  } catch (error) {
+    if (revision !== state.permissionRevision) return;
+    setStatus(error?.message || 'Chrome site-access status could not be refreshed.');
+    scheduleRender();
+  }
 }
 
 function mergeMediaItems(items = []) {
@@ -668,6 +700,7 @@ function renderHelp(root) {
     el('section', { className: 'card' }, [
       heading('Help and limitations', 'Media Scout uses normal browser access only.'),
       el('p', { text: 'Download and conversion actions are only shown when a candidate is fresh, supported, permission-satisfied, source-available, not expired, not a duplicate suppression, and allowed by the browser download state.' }),
+      el('p', { text: 'In-browser HLS merge/remux is experimental and memory-bound. It rejects segments above 24 MiB, aggregate bytes above 128 MiB, and estimated streams earlier; playlist-only and external-helper notes remain available when policy allows.' }),
       el('p', { text: 'Encrypted HLS, DRM-protected streams, authenticated or signed short-lived links, browser-blocked pages, unsupported fMP4/CMAF layouts, and blocked CORS/auth requests are explained as limitations. Media Scout does not attempt bypass behavior.' }),
       el('p', { text: 'Raw URLs can contain private tokens. The popup never shows them, Inspector reveals them only after an explicit action, and reports are redacted by default.' })
     ]),
@@ -698,7 +731,7 @@ async function runModelSecondary(model) {
 async function requestCurrentSiteAccess() {
   const origin = state.siteAccess?.origin;
   if (!origin) return setStatus('No current-site origin is available for permission request.');
-  let granted = false;
+  let granted;
   try {
     if (chrome.permissions?.request) {
       granted = await chrome.permissions.request({ origins: [origin] });

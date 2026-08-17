@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media Scout Controlled Fixture Library</title>
+  <link rel="stylesheet" href="fixture.css">
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Authorized local test page</p>
+    <h1>Media Scout Fixture Library</h1>
+    <p>Fictional, synthetic media for repeatable browser-extension testing.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="directHeading">
+      <h2 id="directHeading">Direct media</h2>
+      <div class="media-grid">
+        <figure>
+          <video id="directVideo" controls preload="metadata" poster="generated/poster.png">
+            <source src="generated/scout-demo.mp4" type="video/mp4">
+            <track src="generated/captions.vtt" kind="captions" srclang="en" label="English">
+          </video>
+          <figcaption>Scout Demo — MP4 with captions and controlled artwork</figcaption>
+        </figure>
+        <figure>
+          <audio id="directAudio" controls preload="metadata" src="generated/scout-tone.mp3"></audio>
+          <figcaption>Scout Tone — MP3</figcaption>
+        </figure>
+      </div>
+      <p><a href="generated/scout-demo.webm" download>Download the controlled WebM fixture</a></p>
+    </section>
+
+    <section aria-labelledby="streamHeading">
+      <h2 id="streamHeading">Stream and boundary fixtures</h2>
+      <div class="actions">
+        <button type="button" data-fetch="generated/hls/master.m3u8">Fetch HLS master</button>
+        <button type="button" data-fetch="generated/hls/media.m3u8">Fetch HLS media playlist</button>
+        <button type="button" data-fetch="/fixtures/encrypted.m3u8">Fetch protected HLS</button>
+        <button type="button" data-fetch="/fixtures/fmp4.m3u8">Fetch fMP4 HLS</button>
+        <button type="button" data-fetch="/fixtures/separate-audio.m3u8">Fetch separate-audio HLS</button>
+        <button type="button" data-fetch="/fixtures/live.m3u8">Fetch live HLS</button>
+        <button type="button" data-fetch="/fixtures/low-latency.m3u8">Fetch low-latency HLS</button>
+        <button type="button" data-fetch="/fixtures/sample.mpd">Fetch DASH manifest</button>
+        <button type="button" data-fetch="/fixtures/segments-6001.m3u8">Fetch 6,001-segment boundary</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="failureHeading">
+      <h2 id="failureHeading">Controlled failures</h2>
+      <div class="actions">
+        <button type="button" data-fetch="/empty/media.mp4">Fetch empty response</button>
+        <button type="button" data-fetch="/slow/media.mp4">Fetch slow response</button>
+        <button type="button" data-fetch="/auth/media.mp4">Fetch authentication-required response</button>
+        <button type="button" data-fetch="/expired/media.mp4?token=fixture-expired">Fetch expired signed response</button>
+        <button id="corsButton" type="button">Fetch cross-origin blocked response</button>
+        <button id="blobButton" type="button">Create page-local Blob media</button>
+        <button id="pathologicalButton" type="button">Create 20,000-element scan page</button>
+      </div>
+      <p id="fixtureStatus" role="status" aria-live="polite">Ready.</p>
+    </section>
+  </main>
+
+  <script src="fixture.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: Automated browser smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-extension-smoke:
+    name: Disposable Playwright Chromium profile
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Restore locked development tools
+        run: npm ci
+
+      - name: Install the lockfile-pinned Chromium build
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Build extension staging directory
+        run: npm run build
+
+      - name: Run controlled extension smoke and accessibility checks
+        env:
+          MEDIA_SCOUT_BROWSER: playwright
+          MEDIA_SCOUT_BROWSER_LABEL: Playwright Chromium CI smoke
+          MEDIA_SCOUT_BROWSER_VERSION: playwright-core 1.62.1 lockfile build
+          MEDIA_SCOUT_CANDIDATE_COMMIT: ${{ github.sha }}
+        run: xvfb-run --auto-servernum npm run browser:e2e
+
+      - name: Upload browser evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: browser-smoke-evidence
+          path: test-results/browser/playwright-chromium-ci-smoke
+          if-no-files-found: error

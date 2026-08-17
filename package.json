@@ -17,13 +17,35 @@
   "scripts": {
     "format": "node test-harness/format-files.mjs",
     "format:check": "node test-harness/static-checks.mjs format",
-    "lint": "node test-harness/static-checks.mjs lint",
-    "typecheck": "node test-harness/static-checks.mjs syntax",
-    "test": "node test-harness/run-tests.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "syntax:check": "node test-harness/static-checks.mjs syntax",
+    "invariants:check": "node test-harness/static-checks.mjs invariants",
+    "test:unit": "node test-harness/run-tests.mjs",
+    "test:fixtures": "node test-harness/test-fixture-server.mjs",
+    "test": "npm run test:unit && npm run test:fixtures",
+    "coverage": "c8 --clean --all --include src/shared/validators.js --include src/shared/report-privacy.js --include src/shared/download-allow-list.js --include src/background/report-manager.js --reporter text --reporter json-summary --reporter html --check-coverage --per-file --lines 75 --statements 75 --functions 70 --branches 55 node test-harness/run-tests.mjs",
+    "coverage:diagnostic": "c8 --clean --all --include src/shared/validators.js --include src/shared/report-privacy.js --include src/shared/download-allow-list.js --include src/background/media-detector.js --include src/background/download-strategies.js --include src/background/queue-manager.js --include src/background/report-manager.js --include src/background/tab-media-store.js --reporter text --reporter json-summary node test-harness/run-tests.mjs",
+    "fixtures:generate": "node test-harness/generate-fixtures.mjs",
+    "fixtures:serve": "node test-harness/fixture-server.mjs",
+    "browser:e2e": "node test-harness/browser-e2e.mjs",
+    "performance:node": "node test-harness/performance-benchmarks.mjs",
+    "performance:memory": "node --max-old-space-size=256 test-harness/memory-boundary.mjs",
+    "performance": "npm run performance:node && npm run performance:memory",
     "evidence:report-sample": "node test-harness/generate-sanitized-report-sample.mjs",
     "evidence:provenance": "node test-harness/generate-source-inventory.mjs",
     "build": "node test-harness/build-extension.mjs",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
+    "artifact:inspect": "node test-harness/verify-repository.mjs",
+    "release:build": "node test-harness/build-release.mjs",
+    "release:reproducibility": "node test-harness/test-release-reproducibility.mjs",
+    "check": "npm run format:check && npm run lint && npm run syntax:check && npm run invariants:check && npm run coverage && npm run test:fixtures && npm run performance"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "axe-core": "4.13.0",
+    "c8": "12.0.0",
+    "eslint": "10.8.1",
+    "globals": "17.11.0",
+    "playwright-core": "1.62.1"
   },
   "engines": {
     "node": ">=22"

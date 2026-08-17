@@ -103,6 +103,14 @@ function testCommandEscaping() {
 
 function testDownloadAllowList() {
   assert(getDownloadAllowDecision({ mediaType: 'video', extension: 'mp4', url: 'https://example.com/video.mp4' }).allowed, 'normal MP4 file is allow-listed');
+  const emptyPerformanceMedia = getDownloadAllowDecision({ mediaType: 'video', extension: 'mp4', url: 'https://example.com/empty.mp4', source: SOURCES.PERFORMANCE, initiatorType: 'fetch', resourceInfo: { initiatorType: 'fetch', encodedBodySize: 0, decodedBodySize: 0, transferSize: 300, nextHopProtocol: 'h2' } });
+  assert(!emptyPerformanceMedia.allowed && emptyPerformanceMedia.code === 'empty-performance-resource', 'empty fetch responses are not presented as downloadable media');
+  const browserBlockedPerformanceMedia = getDownloadAllowDecision({ mediaType: 'video', extension: 'mp4', url: 'https://cdn.example.com/cors-blocked.mp4', source: SOURCES.PERFORMANCE, initiatorType: 'fetch', resourceInfo: { initiatorType: 'fetch', encodedBodySize: 0, decodedBodySize: 0, transferSize: 0, nextHopProtocol: '' } });
+  assert(!browserBlockedPerformanceMedia.allowed && browserBlockedPerformanceMedia.code === 'browser-blocked-performance-resource', 'browser-blocked fetch observations fail closed instead of becoming direct-download actions');
+  const authenticationPerformanceMedia = getDownloadAllowDecision({ mediaType: 'video', extension: 'mp4', mime: 'text/plain', url: 'https://example.com/auth/media.mp4', source: SOURCES.PERFORMANCE, initiatorType: 'fetch', resourceInfo: { initiatorType: 'fetch', responseStatus: 401, contentType: 'text/plain', encodedBodySize: 39, decodedBodySize: 39, transferSize: 339, nextHopProtocol: 'h2' } });
+  assert(!authenticationPerformanceMedia.allowed && authenticationPerformanceMedia.code === 'performance-resource-authentication-response' && authenticationPerformanceMedia.category === ERROR_CATEGORIES.AUTHENTICATION, 'HTTP 401 performance observations are blocked as authentication responses');
+  const accessDeniedPerformanceMedia = getDownloadAllowDecision({ mediaType: 'video', extension: 'mp4', mime: 'text/plain', url: 'https://example.com/expired/media.mp4', source: SOURCES.PERFORMANCE, initiatorType: 'fetch', resourceInfo: { initiatorType: 'fetch', responseStatus: 403, contentType: 'text/plain', encodedBodySize: 36, decodedBodySize: 36, transferSize: 336, nextHopProtocol: 'h2' } });
+  assert(!accessDeniedPerformanceMedia.allowed && accessDeniedPerformanceMedia.code === 'performance-resource-access-denied-response' && accessDeniedPerformanceMedia.category === ERROR_CATEGORIES.ACCESS_CONTROL, 'HTTP 403 performance observations are blocked as access-control responses');
   const signedFinal = getDownloadAllowDecision({ mediaType: 'video', extension: 'mp4', url: 'https://cdn.example.com/video.mp4?token=abc', isProtected: true, signedOrExpiringHint: true, unsupportedReason: 'This URL appears to use signed, expiring, or tokenized access.' });
   assert(signedFinal.allowed && signedFinal.limited, 'signed top-level final media is allow-listed as a limited direct Chrome download');
   assert(getDownloadAllowDecision({ mediaType: 'video', extension: 'media', mime: 'video/mp4', url: 'https://example.com/download?id=1' }).allowed, 'MIME-only final media is allow-listed');
@@ -145,6 +153,16 @@ function testDownloadAllowList() {
   const signedHls = { mediaType: 'hls', extension: 'm3u8', url: 'https://example.com/v.m3u8?signature=abc', isProtected: true, signedOrExpiringHint: true, unsupportedReason: 'signed URL' };
   assert(!getDownloadAllowDecision(signedHls, { hlsOutputMethod: HLS_OUTPUT_METHODS.MP4_REMUX }).allowed, 'signed HLS playlist is blocked for segment merge');
   assert(getDownloadAllowDecision(signedHls, { hlsOutputMethod: HLS_OUTPUT_METHODS.PLAYLIST_ONLY }).allowed, 'signed HLS top-level playlist can be saved as playlist text only');
+  const deferredHls = {
+    mediaType: 'hls',
+    extension: 'm3u8',
+    url: 'https://example.com/segments-6001.m3u8',
+    playlist: { inspected: false, inspectionDeferred: 'per-scan-limit' },
+    safetyWarning: 'Playlist inspection was deferred because this scan exposed many manifests. Any conversion still validates encryption, signed components, layout, and size before fetching segments.'
+  };
+  const deferredHlsDecision = getDownloadAllowDecision(deferredHls, { hlsOutputMethod: HLS_OUTPUT_METHODS.SMART_MP4 });
+  assert(deferredHlsDecision.allowed && deferredHlsDecision.code === 'safe-hls-mpegts-merge', 'generic deferred-inspection guidance is not mistaken for evidence that the top-level HLS URL is signed');
+  assert(!deferredHlsDecision.riskFlags.includes('signed-top-level-url'), 'deferred HLS inspection does not emit a false signed-URL risk flag');
   const htmlHls = { mediaType: 'hls', extension: 'm3u8', mime: 'text/html', url: 'https://example.com/not-a-playlist.m3u8' };
   assert(!getDownloadAllowDecision(htmlHls, { hlsOutputMethod: HLS_OUTPUT_METHODS.PLAYLIST_ONLY }).allowed, 'HLS-looking URLs that return HTML are blocked as non-manifest responses');
   const liveHls = { mediaType: 'hls', extension: 'm3u8', url: 'https://example.com/live.m3u8', playlist: { inspected: true, hasEndList: false, playlistType: 'event' } };

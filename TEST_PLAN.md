@@ -69,7 +69,7 @@ For finite unencrypted MPEG-TS HLS, test Smart MP4, MP4 remux, timestamp-fixed T
 
 For negative fixtures, test encryption markers, DRM markers, separate audio without a self-contained variant, fMP4/CMAF, low-latency partials, live/event playlists without a safe finite boundary, empty media playlists, too many segments, oversized estimates, authentication failures, CORS failures, and expired/signed components.
 
-Also test a page with more than eight manifest candidates, a manifest larger than 4 MiB, a segment larger than 64 MiB, a master with more than 200 variants, a master with more than 100 audio renditions, and a media playlist with more than 6,000 segments. Repeat detection of an encrypted candidate through a less-specific source.
+Also test a page with more than eight manifest candidates, a manifest larger than 4 MiB, a segment larger than 24 MiB, aggregate HLS data above 128 MiB, a master with more than 200 variants, a master with more than 100 audio renditions, and a media playlist with more than 6,000 segments. Repeat detection of an encrypted candidate through a less-specific source.
 
 Pass criteria: supported paths complete within configured bounds; deferred or oversized inputs are identified without unbounded reads; stronger encryption/unsupported evidence is retained; unsupported paths never claim to produce a complete video; helper notes quote shell arguments safely; canceled tasks stop promptly and release object URLs.
 

@@ -49,7 +49,7 @@ The extension does not request cookies, browsing history, request blocking, debu
 | --- | --- |
 | Progressive HTTP(S) media | Direct browser download when evidence and current settings allow it. |
 | Page-local `blob:` media | Page-context handoff while the source tab remains available. |
-| Unencrypted MPEG-TS HLS VOD | Bounded merge/remux paths after playlist inspection. |
+| Unencrypted MPEG-TS HLS VOD | Experimental, memory-bound merge/remux after playlist inspection; 24 MiB per segment, 128 MiB aggregate, and earlier estimate rejection. |
 | HLS master playlist | Select a visible self-contained variant according to settings. |
 | DASH | Save the MPD manifest only; no built-in segment assembly. |
 | fMP4/CMAF, separate-audio, low-latency, or live HLS | Playlist-only or explicit unsupported state unless a safe self-contained fallback is visible. |
@@ -73,11 +73,11 @@ test-harness/                 dependency-free checks, tests, and staging build
 
 The background service worker owns privileged actions. Content scripts may submit only bounded scan evidence and progress messages. Extension pages send privileged commands through a validated message boundary. Raw task URLs remain runtime-only where practical; persisted queue history contains reduced identifiers, categories, progress, and timestamps.
 
-Hard safety ceilings keep hostile or accidental page structures bounded: 750 retained candidates per tab, 500 candidates per normal scan, 4 MiB playlist inspection, 200 HLS variants, 100 audio renditions, 6,000 HLS segments, 500 DASH representation details, and 4,096-character retained media URLs. Items are prioritized so manifests and primary media survive ahead of artwork and low-value fragments.
+Hard safety ceilings keep hostile or accidental page structures bounded: 750 retained candidates per tab, 500 candidates per normal scan, 4 MiB playlist inspection, 200 HLS variants, 100 audio renditions, 6,000 HLS segments, 500 DASH representation details, 4,096-character retained media URLs, 24 MiB per HLS segment, and 128 MiB aggregate HLS bytes. Items are prioritized so manifests and primary media survive ahead of artwork and low-value fragments.
 
 ## Development and validation
 
-No package installation is required because the project has zero third-party dependencies.
+The shipped extension has zero runtime dependencies. Development tools are pinned in `package-lock.json`; install them with a locked `npm ci`.
 
 ```sh
 npm run format

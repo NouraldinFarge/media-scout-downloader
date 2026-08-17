@@ -11,9 +11,10 @@ import { MediaDetector, parseHlsInspection } from '../src/background/media-detec
 import { DiagnosticsManager } from '../src/background/diagnostics-manager.js';
 import { DOWNLOAD_STATUSES, ERROR_CATEGORIES, MEDIA_TYPES, MESSAGE_TYPES, STORAGE_KEYS } from '../src/shared/constants.js';
 import { buildExtensionState, summarizeUrl } from '../src/shared/report-utils.js';
-import { buildReportContext, reportContextsMatch, reportFilesDigest } from '../src/shared/report-privacy.js';
+import { buildReportContext, redactKnownReportText, reportContextsMatch, reportFilesDigest } from '../src/shared/report-privacy.js';
 import { sanitizeLogValue } from '../src/shared/logger.js';
 import { validateMediaUrl, validateMessage } from '../src/shared/validators.js';
+import { reconcileSiteAccessGrant } from '../src/shared/permission-state.js';
 
 const results = runSelfTests();
 assert.equal(results.passed, true, JSON.stringify(results.results.filter((result) => !result.passed)));
@@ -62,6 +63,8 @@ assert.equal(redactedReport.includes('camel-case-secret'), false, 'report redact
 const summarizedUrl = summarizeUrl('https://example.com/private/path?account_email=user%40example.com&token=secret');
 assert.equal(summarizedUrl.queryParameterCount, 2, 'redacted URL summaries retain only the number of query parameters');
 assert.equal(JSON.stringify(summarizedUrl).includes('account_email'), false, 'redacted URL summaries do not retain query-parameter names');
+const bulkRedactedText = redactKnownReportText('Alpha.Example PRIVATE(file)+ and alpha.example', ['example', 'alpha.example', 'PRIVATE(file)+']);
+assert.equal(/alpha\.example|private\(file\)\+|\bexample\b/i.test(bulkRedactedText), false, 'bulk identifying-value redaction is case-insensitive, regex-safe, and handles overlapping values');
 assert.equal(buildExtensionState({}).schemaVersion, 7, 'report schema advances when the privacy-preview contract changes');
 const sanitizedLog = JSON.stringify(sanitizeLogValue({ message: 'Failed https://private.invalid/watch?token=LOG_SECRET', localPath: 'C:\\Users\\Private\\file.mp4', password: 'LOG_PASSWORD' }));
 assert.equal(sanitizedLog.includes('LOG_SECRET'), false, 'warning/debug logging redacts URL query values');
@@ -77,6 +80,8 @@ assert.equal(validateMediaUrl(`https://example.com/${'a'.repeat(4096)}.mp4`)?.co
 assert.equal(classifyChromeDownloadError('USER_CANCELED'), ERROR_CATEGORIES.USER_CANCELED, 'Chrome user cancellations are not retried as network errors');
 assert.equal(classifyChromeDownloadError('NETWORK_FAILED'), ERROR_CATEGORIES.NETWORK, 'Chrome network interruptions remain retryable network errors');
 
+await testPermissionBoundWebRequestLifecycle();
+await testPermissionDriftReconciliation();
 installChromeStorageStub();
 await testMalformedDiagnosticsAreHarmless();
 await testQueueHistoryClearWinsPendingWrite();
@@ -101,9 +106,14 @@ assert.equal(sidepanelSource.includes("text: String(file.content ?? '')"), true,
 assert.equal(sidepanelSource.includes('MESSAGE_TYPES.VALIDATE_REPORT_PREVIEW'), true, 'report export validates the preview against current source evidence');
 assert.equal(sidepanelSource.includes('reportFilesDigest(files)'), true, 'report export recomputes the exact preview/file-set digest');
 assert.equal(sidepanelSource.includes('invalidateReportPreview'), true, 'side-panel report inputs share an explicit preview-invalidation path');
+assert.equal(sidepanelSource.includes('chrome.permissions?.onRemoved?.addListener'), true, 'persistent side panel observes external site-access revocation');
+assert.equal(sidepanelSource.includes('preserveSiteAccess: permissionRevision !== state.permissionRevision'), true, 'slow scans cannot overwrite a newer permission-drift result');
 assert.equal(sidepanelSource.includes('Screenshots.'), true, 'report UI explicitly states that screenshots are never included');
 const contentSource = await readFile(new URL('../src/content/content.js', import.meta.url), 'utf8');
 assert.equal(contentSource.includes('queryParameterNames'), false, 'runtime HLS errors do not retain sensitive query-parameter names');
+assert.equal(contentSource.includes('const MAX_HLS_BYTES = 128 * 1024 * 1024'), true, 'experimental HLS aggregate memory is capped at 128 MiB');
+assert.equal(contentSource.includes('const MAX_HLS_SEGMENT_BYTES = 24 * 1024 * 1024'), true, 'experimental HLS segments are capped at 24 MiB each');
+assert.equal(contentSource.includes('Math.floor(MAX_HLS_BYTES * 0.65)'), true, 'estimated HLS size rejects before the hard aggregate cap');
 const serviceWorkerSource = await readFile(new URL('../src/background/service-worker.js', import.meta.url), 'utf8');
 assert.equal(serviceWorkerSource.includes('The source tab was closed. Media Scout cleared its stale detections'), true, 'closing a monitored source tab broadcasts an authoritative UI reset');
 const pageScannerSource = await readFile(new URL('../src/content/page-media-scanner.js', import.meta.url), 'utf8');
@@ -315,6 +325,93 @@ async function testMalformedDiagnosticsAreHarmless() {
   assert.equal(Object.hasOwn(snapshot.strategies, '__proto__'), false, 'corrupt diagnostic prototype keys are discarded');
   assert.equal(Object.hasOwn(snapshot.strategies, 'constructor'), false, 'corrupt diagnostic constructor keys are discarded');
   assert.equal(Object.prototype.success, undefined, 'diagnostic normalization cannot mutate shared object prototypes');
+}
+
+async function testPermissionBoundWebRequestLifecycle() {
+  const permissionOrigins = [];
+  const permissionAdded = testChromeEvent();
+  const permissionRemoved = testChromeEvent();
+  const headersReceived = testChromeEvent();
+  const completed = testChromeEvent();
+  globalThis.chrome = {
+    permissions: {
+      getAll: async () => ({ origins: [...permissionOrigins] }),
+      onAdded: permissionAdded,
+      onRemoved: permissionRemoved
+    },
+    webRequest: {
+      onHeadersReceived: headersReceived,
+      onCompleted: completed
+    }
+  };
+
+  const detector = new MediaDetector({ tabMediaStore: new TabMediaStore(), diagnostics: {}, getSettings: async () => ({}) });
+  await detector.start();
+  assert.equal(headersReceived.registrations.length, 0, 'network observation does not register before optional host access exists');
+  assert.equal(completed.registrations.length, 0, 'completed-request observation does not register before optional host access exists');
+
+  permissionOrigins.push('https://media.fixture.invalid/*');
+  await permissionAdded.emit({ origins: [...permissionOrigins] });
+  assert.deepEqual(headersReceived.registrations[0]?.filter?.urls, ['https://media.fixture.invalid/*'], 'per-site grants bind header observation to the granted origin only');
+  assert.deepEqual(completed.registrations[0]?.filter?.urls, ['https://media.fixture.invalid/*'], 'per-site grants bind completed-request observation to the granted origin only');
+
+  permissionOrigins.splice(0, permissionOrigins.length, 'http://*/*', 'https://*/*');
+  await permissionAdded.emit({ origins: [...permissionOrigins] });
+  assert.equal(headersReceived.removeCount, 1, 'changing host grants removes the stale header listener before replacement');
+  assert.deepEqual(headersReceived.registrations.at(-1)?.filter?.urls, ['http://*/*', 'https://*/*'], 'all-site grants bind observation only after Chrome reports those origins');
+
+  permissionOrigins.length = 0;
+  await permissionRemoved.emit({ origins: ['http://*/*', 'https://*/*'] });
+  assert.equal(headersReceived.listeners.size, 0, 'revoking host access unregisters header observation');
+  assert.equal(completed.listeners.size, 0, 'revoking host access unregisters completed-request observation');
+
+  detector.stop();
+  assert.equal(permissionAdded.listeners.size, 0, 'stopping the detector removes the permission-added observer');
+  assert.equal(permissionRemoved.listeners.size, 0, 'stopping the detector removes the permission-removed observer');
+}
+
+async function testPermissionDriftReconciliation() {
+  const granted = await reconcileSiteAccessGrant(
+    { origin: 'https://media.fixture.invalid/*', granted: false },
+    async (query) => {
+      assert.deepEqual(query, { origins: ['https://media.fixture.invalid/*'] }, 'permission drift checks only the current origin');
+      return true;
+    }
+  );
+  assert.equal(granted.checked, true, 'permission drift checks a known current-site origin');
+  assert.equal(granted.changed, true, 'an external grant is reported as a state change');
+  assert.deepEqual(granted.siteAccess, { origin: 'https://media.fixture.invalid/*', granted: true }, 'external grant updates only the current-site permission state');
+
+  const revoked = await reconcileSiteAccessGrant(granted.siteAccess, async () => false);
+  assert.equal(revoked.changed, true, 'an external revocation is reported as a state change');
+  assert.deepEqual(revoked.siteAccess, { origin: 'https://media.fixture.invalid/*', granted: false }, 'external revocation disables advanced detection in persistent UI state');
+
+  const unavailable = await reconcileSiteAccessGrant(null, async () => true);
+  assert.deepEqual(unavailable, { checked: false, changed: false, siteAccess: null }, 'permission drift is a no-op until a current-site origin is known');
+}
+
+function testChromeEvent() {
+  const listeners = new Set();
+  const registrations = [];
+  let removeCount = 0;
+  return {
+    listeners,
+    registrations,
+    get removeCount() { return removeCount; },
+    addListener(listener, filter, extraInfoSpec) {
+      listeners.add(listener);
+      registrations.push({ listener, filter, extraInfoSpec });
+    },
+    removeListener(listener) {
+      if (listeners.delete(listener)) removeCount += 1;
+    },
+    hasListener(listener) {
+      return listeners.has(listener);
+    },
+    async emit(payload) {
+      await Promise.all([...listeners].map((listener) => listener(payload)));
+    }
+  };
 }
 
 async function testQueueHistoryClearWinsPendingWrite() {

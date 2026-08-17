@@ -53,7 +53,7 @@
       .replace(/\\\//g, '/')
       .replace(/\\u002f/gi, '/')
       .replace(/\\x2f/gi, '/')
-      .replace(/^["'({\[]+|["'),;\]}]+$/g, '');
+      .replace(/^["'({[]+|["'),;\]}]+$/g, '');
   }
 
   function extensionFromUrl(rawUrl) {
@@ -242,8 +242,10 @@
       const normalized = normalizeUrl(entry.name);
       if (!normalized || seen.has(normalized) || !urlLooksMedia(normalized)) continue;
       seen.add(normalized);
-      const item = makeItem(normalized, null, 'performance-resource', '', {
+      const contentType = clipText(entry.contentType || '', 160);
+      const item = makeItem(normalized, null, 'performance-resource', contentType, {
         frameUrl: location.href,
+        mime: contentType,
         initiatorType: entry.initiatorType || '',
         transferSize: entry.transferSize || 0,
         encodedBodySize: entry.encodedBodySize || 0,
@@ -633,7 +635,7 @@
   }
 
   function describeFrame() {
-    let isTop = false;
+    let isTop;
     try { isTop = window.top === window.self; } catch (_error) { isTop = false; }
     return {
       url: clipText(location.href, 4096),
@@ -733,7 +735,7 @@
   }
 
   function compactResourceInfo(entry) {
-    return {
+    const info = {
       initiatorType: entry.initiatorType || '',
       transferSize: entry.transferSize || 0,
       encodedBodySize: entry.encodedBodySize || 0,
@@ -743,6 +745,11 @@
       responseEnd: Math.round(entry.responseEnd || 0),
       nextHopProtocol: entry.nextHopProtocol || ''
     };
+    const responseStatus = Number(entry.responseStatus);
+    const contentType = clipText(entry.contentType || '', 160);
+    if (Number.isInteger(responseStatus) && responseStatus >= 0 && responseStatus <= 999) info.responseStatus = responseStatus;
+    if (contentType) info.contentType = contentType;
+    return info;
   }
 
   function rangesToList(ranges) {
@@ -864,8 +871,6 @@
     const mime = context.mime || '';
     const extension = extensionFromUrl(normalizedUrl);
     const reasons = [];
-    let acceptedByBasicScanner = false;
-
     if (!rawUrl) reasons.push('empty-url');
     if (rawUrl && !normalizedUrl) reasons.push('invalid-url');
 
@@ -890,7 +895,7 @@
     if (mediaByMime) reasons.push('media-looking-mime');
     if (normalizedUrl?.startsWith('blob:')) reasons.push('blob-url-page-local');
 
-    acceptedByBasicScanner = Boolean(context.expectedMedia !== false && normalizedUrl && (mediaByUrl || mediaByMime));
+    const acceptedByBasicScanner = Boolean(context.expectedMedia !== false && normalizedUrl && (mediaByUrl || mediaByMime));
     if (!acceptedByBasicScanner && normalizedUrl && context.expectedMedia !== false) reasons.push('unsupported-extension-and-mime-for-basic-scan');
 
     return {
@@ -932,6 +937,8 @@
         hostname: host,
         initiatorType: entry.initiatorType || '',
         extension: extensionFromUrl(normalized),
+        responseStatus: Number.isInteger(Number(entry.responseStatus)) ? Number(entry.responseStatus) : null,
+        contentType: clipText(entry.contentType || '', 160),
         transferSize: entry.transferSize || 0,
         encodedBodySize: entry.encodedBodySize || 0,
         decodedBodySize: entry.decodedBodySize || 0,
@@ -945,7 +952,7 @@
           attribute: entry.initiatorType || 'resource',
           tagName: '',
           elementIndex: -1,
-          mime: '',
+          mime: clipText(entry.contentType || '', 160),
           element: null
         });
       } else if (isInteresting) {

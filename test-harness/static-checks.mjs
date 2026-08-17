@@ -10,8 +10,8 @@ const sourceFiles = allFiles.filter((file) => /\.(?:css|html|js|json|md|mjs|ya?m
 
 if (mode === 'format') await checkFormatting(sourceFiles);
 else if (mode === 'syntax') await checkSyntax(allFiles.filter((file) => /\.(?:js|mjs)$/i.test(file)));
-else if (mode === 'lint') await checkRepository();
-else throw new Error('Usage: node test-harness/static-checks.mjs <format|lint|syntax>');
+else if (mode === 'invariants') await checkRepository();
+else throw new Error('Usage: node test-harness/static-checks.mjs <format|syntax|invariants>');
 
 console.log(`Static ${mode} checks passed.`);
 
@@ -62,10 +62,13 @@ async function checkRepository() {
     catch (_error) { failures.push(`manifest.json: missing referenced file ${relative}`); }
   }
 
-  for (const required of ['format', 'format:check', 'lint', 'typecheck', 'test', 'build', 'check']) {
+  for (const required of ['format', 'format:check', 'lint', 'syntax:check', 'invariants:check', 'test', 'coverage', 'build', 'check']) {
     if (!packageJson.scripts?.[required]) failures.push(`package.json: missing ${required} script`);
   }
-  if (packageJson.dependencies || packageJson.devDependencies) failures.push('package.json: unexpected third-party runtime or development dependencies');
+  if (Object.keys(packageJson.dependencies || {}).length) failures.push('package.json: shipped runtime dependencies are not allowed');
+  for (const [name, version] of Object.entries(packageJson.devDependencies || {})) {
+    if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) failures.push(`package.json: development dependency ${name} must use an exact version`);
+  }
 
   const codeFiles = allFiles.filter((file) => /\.(?:js|mjs)$/i.test(file));
   for (const file of codeFiles) {
@@ -142,7 +145,7 @@ function contrastRatio(left, right) {
 async function walk(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (['.git', 'dist', 'node_modules'].includes(entry.name)) continue;
+    if (['.git', 'coverage', 'dist', 'node_modules', 'release', 'test-results'].includes(entry.name)) continue;
     const target = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await walk(target));
     else if (entry.isFile()) files.push(target);

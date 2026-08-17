@@ -41,10 +41,10 @@
   const MAX_HLS_SEGMENTS = 6000;
   const MAX_HLS_VARIANTS = 200;
   const MAX_HLS_AUDIO_RENDITIONS = 100;
-  const MAX_HLS_BYTES = 768 * 1024 * 1024; // Blob-based merge/remux is memory-bound; keep a safer browser cap.
-  const MAX_HLS_ESTIMATED_BYTES = Math.floor(MAX_HLS_BYTES * 0.85);
+  const MAX_HLS_BYTES = 128 * 1024 * 1024; // Experimental Blob-based merge/remux can multiply peak memory; fail closed early.
+  const MAX_HLS_ESTIMATED_BYTES = Math.floor(MAX_HLS_BYTES * 0.65);
   const MAX_HLS_PLAYLIST_BYTES = 4 * 1024 * 1024;
-  const MAX_HLS_SEGMENT_BYTES = 64 * 1024 * 1024;
+  const MAX_HLS_SEGMENT_BYTES = 24 * 1024 * 1024;
   const DEFAULT_SEGMENT_PARALLELISM = 4;
   const MAX_SEGMENT_PARALLELISM = 16;
   const DEFAULT_SEGMENT_RETRY_LIMIT = 2;
@@ -581,7 +581,7 @@
     if (!Number.isFinite(parsed)) return DEFAULT_SEGMENT_RETRY_LIMIT;
     return Math.max(0, Math.min(MAX_SEGMENT_RETRY_LIMIT, Math.round(parsed)));
   }
-  async function buildPreferredHlsOutput(parts, preferredFilename, message, playlist = null, signal = null) {
+  async function buildPreferredHlsOutput(parts, preferredFilename, message, _playlist = null, signal = null) {
     const canRemux = Boolean(globalThis.MediaScoutMp4Remuxer?.remuxToMp4);
     const hlsOutputMethod = message.hlsOutputMethod || HLS_OUTPUT_METHODS.SMART_MP4;
     const requireMp4 = hlsOutputMethod === HLS_OUTPUT_METHODS.MP4_REMUX;
