@@ -6,7 +6,7 @@ Environment: Windows 11 Pro 10.0.26100 (64-bit), Node.js 24.19.0, npm 11.16.0, G
 
 Candidate source binding: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda` (tree `26a949b294989af7a32440f2576dc705939ed3b7`). Quality, build, dependency, Git-integrity, Gitleaks, and Semgrep checks were rerun after this source commit.
 
-Result: **No unresolved critical or high-severity product security/privacy finding was identified in the local P0 review.** The corrected report preview closes the known high-severity privacy/UX finding. This result is not a claim that the extension is secure or vulnerability-free. Clean-profile browser testing, eligible remote CodeQL execution, owner provenance attestations, and final artifact review remain gates.
+Result: **No unresolved critical or high-severity product security/privacy finding was identified in the local P0 review.** The corrected report preview closes the known high-severity privacy/UX finding. This result is not a claim that the extension is secure or vulnerability-free. Clean-profile browser testing, eligible remote CodeQL execution, future-asset provenance, and final artifact review remain gates.
 
 ## Findings disposition
 
@@ -78,5 +78,5 @@ P1 may add a workflow pinned to immutable `github/codeql-action` commits, but it
 - Exact stable Chrome and Brave tests on Windows have not yet been run.
 - Screen-reader, browser accessibility, responsive/zoom/forced-colors, and browser performance evidence has not yet been produced.
 - The 768 MiB Blob-based HLS aggregate boundary still needs lower-memory evidence and may need reduction.
-- Source/remux/icon rights require owner attestation; see `PROVENANCE.md`.
+- The owner's current source/remux/icon creation attestation is recorded; future fixtures and release/presentation assets still require exact origin/license records.
 - Chrome Web Store declarations, privacy/support URLs, legal review, and any public action require owner approval.

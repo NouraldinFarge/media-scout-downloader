@@ -6,7 +6,7 @@ Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda` (tree `26a94
 
 Result: **BLOCKED — do not begin P1 publication work or publish/showcase the project.**
 
-The known high-severity report-preview privacy defect is fixed and no unresolved critical/high product security or privacy finding was identified by the completed local P0 review. P0 still cannot pass because source/remux/icon rights require owner attestation and the required CodeQL result lacks an established eligible execution context.
+The known high-severity report-preview privacy defect is fixed and no unresolved critical/high product security or privacy finding was identified by the completed local P0 review. The owner stated, “I fully created this extension,” resolving the current source/remux/icon origin question for P0. P0 still cannot pass because the required CodeQL result lacks an established eligible execution context.
 
 ## Exit-criterion decision
 
@@ -22,14 +22,13 @@ The known high-severity report-preview privacy defect is fixed and no unresolved
 | No unresolved critical/high product security/privacy defect | Pass for completed local scope | Gitleaks, Semgrep, dependency audit, static/source controls, regressions, threat model; `SECURITY_PRIVACY_REVIEW.md`. Browser-managed cases remain accurately deferred to P1. |
 | Required CodeQL-compatible check | **Blocked** | No run was performed. Standalone CLI eligibility is not established for this private all-rights-reserved code; eligible private GitHub execution is not available/authorized in current evidence. Ledger EV-016. |
 | License and public-source state unambiguous | Pass | `LICENSE.md` is all rights reserved; project is not described as open source; ledger EV-018. |
-| Code/fixture/asset/AI provenance documented and cleared | **Blocked** | Inventory/disclosures exist, but inspection cannot prove source/remux/icon rights. Owner attestation is required; ledger EV-017 and `OWNER_ATTESTATION_DRAFT.md`. |
+| Code/fixture/asset/AI provenance documented and current owner origin attested | Pass for current P0 scope | Inventory/disclosures exist; the owner's full-creation statement is recorded in `OWNER_ATTESTATION.md`. It is not independent legal proof, does not cover future assets, and does not authorize publication. |
 | Proposed public artifacts contain no private identifiers | Pass for current local P0 drafts/sample | Saved report sample was manually read/searched; no real/private fixture values or machine paths are present. Store copy remains explicitly draft/private. No P2 public visuals/copy exist yet. |
 
 ## Exact blockers
 
-1. **Owner provenance decision.** Complete `OWNER_ATTESTATION_DRAFT.md` for the exact candidate. Any copied/adapted material or license/notice obligation must be identified and resolved.
-2. **CodeQL eligibility and execution.** Select an eligible route and run CodeQL against the exact commit. A private GitHub/GitHub Advanced Security route would require explicit approval before remote creation, push, or workflow execution. A license change is a separate explicit-approval action. Semgrep and local tests do not replace CodeQL.
-3. **Publication-final rebinding after resolution.** Rerun all affected local checks, build/sample/inventory, secret/static scans, bind results and hashes to the exact commit, and confirm a clean worktree.
+1. **CodeQL eligibility and execution.** Select an eligible route and run CodeQL against the exact commit. A private GitHub/GitHub Advanced Security route would require explicit approval before remote creation, push, or workflow execution. A license change is a separate explicit-approval action. Semgrep and local tests do not replace CodeQL.
+2. **Publication-final rebinding after resolution.** Rerun all affected local checks, build/sample/inventory, secret/static scans, bind results and hashes to the exact commit, and confirm a clean worktree.
 
 ## Claims supportable now in private review only
 
@@ -38,6 +37,7 @@ The known high-severity report-preview privacy defect is fixed and no unresolved
 - Gitleaks 8.30.0 and Semgrep Community 1.173.0 completed the exact scopes recorded in the ledger without a finding.
 - The P0 npm dependency tree is empty and npm reported zero dependency vulnerabilities.
 - The repository is all rights reserved, private, and has no remote/tag/release/store publication.
+- The owner attests that they fully created the extension; the audit records this as current source/remux/icon origin evidence with explicit limits.
 
 These are bounded evidence statements, not public-release approval.
 

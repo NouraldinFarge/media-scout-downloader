@@ -10,16 +10,16 @@ No license change was made during release-readiness work. GitHub may display thi
 
 ## File-level inventory
 
-Run `npm run evidence:provenance` to regenerate `docs/evidence/SOURCE_INVENTORY.json`. The inventory records the relative path, byte length, SHA-256 digest, file kind, origin record, license status, AI-assistance status, and whether owner attestation is still required for application/source/test/configuration/assets/documentation and generated sample files. It excludes its own self-referential output, the evidence ledger that binds the inventory hash, Git internals, dependencies/tools, and generated `dist/` output. That narrow ledger exclusion prevents an impossible recursive hash dependency and is declared in the generated scope field.
+Run `npm run evidence:provenance` to regenerate `docs/evidence/SOURCE_INVENTORY.json`. The inventory records the relative path, byte length, SHA-256 digest, file kind, origin record, license status, AI-assistance status, and owner-attestation status for application/source/test/configuration/assets/documentation and generated sample files. It excludes its own self-referential output, the evidence ledger that binds the inventory hash, Git internals, dependencies/tools, and generated `dist/` output. That narrow ledger exclusion prevents an impossible recursive hash dependency and is declared in the generated scope field.
 
-The inventory is evidence of what was reviewed. A repository hash and copyright notice do not independently prove authorship or clear third-party rights.
+The inventory is evidence of what was reviewed. The owner stated on 2026-08-17, “I fully created this extension.” That statement is recorded in `docs/evidence/OWNER_ATTESTATION.md`; a repository hash, copyright notice, or owner assertion is still not independent legal proof.
 
 ## Application and remux source
 
-- The application source was supplied in the owner's private repository snapshot and has been reviewed and modified during the current release-readiness work.
+- The application source was supplied in the owner's private repository snapshot. The owner stated that they fully created the extension. The current candidate also includes the reviewed AI-assisted release-readiness changes disclosed below.
 - `src/content/mp4-remuxer.js` is a repository-contained MPEG-TS (H.264/AAC) to MP4 repackaging implementation. It imports no third-party library and contains no third-party copyright header or attribution notice.
 - A limited public exact-phrase search on 2026-08-17 for distinctive function/error/comment strings from the remuxer found no matching source. That search is not exhaustive and is not proof of originality or non-infringement.
-- Before any public distribution, the owner must attest that the application and remux source are owner-authored, properly licensed, or otherwise authorized, and must identify any copied algorithm, snippet, specification text, or prior AI/tool source that requires attribution.
+- The owner creation statement resolves the current P0 source-origin question for the application and remux implementation. No copied/adapted exception was supplied. If that is incomplete, the owner must correct the attestation and identify any algorithm, snippet, specification text, or prior source that requires attribution before publication.
 - Standard container/codec concepts, box names, and byte-layout operations are interoperability facts; this audit does not make a legal conclusion about protectability or implementation origin.
 
 ## Icons and visual assets
@@ -33,7 +33,7 @@ The only packaged raster assets at the P0 checkpoint are four sizes of the same 
 | `assets/icons/icon48.png` | 48×48 | `dcaf5a7ab78498eca9bb576f39c7bc5e3a4204c92fc56ff18202b33b0466ab53` |
 | `assets/icons/icon128.png` | 128×128 | `8d4406c2f098eaea396ffbe32d88bffabb2fe87f6d749d76c7a8b599bb79943` |
 
-ImageMagick 7.1.2-27 inspection found a simple five-color sRGB palette/alpha image and no visible author/license attribution in the inspected metadata. The files were present in the supplied private snapshot. Their exact creation method and originality cannot be independently established from the files, so owner attestation is required before publication. Future screenshots, social previews, diagrams, and demo media require their own generated/source record and privacy review.
+ImageMagick 7.1.2-27 inspection found a simple five-color sRGB palette/alpha image and no visible third-party author/license attribution in the inspected metadata. The files were present in the supplied private snapshot, and the owner's full-creation statement is recorded as their current-origin attestation. The binary files do not independently prove creation history. Future screenshots, social previews, diagrams, and demo media require their own generated/source record and privacy review.
 
 ## Fonts
 
@@ -66,14 +66,10 @@ AI coding agents assisted with research, implementation, testing, and iteration.
 
 AI output is treated as untrusted draft material: changes are diff-reviewed, relevant tests are run, generated UI/artifacts are inspected, and claims remain private until they map to immutable passing evidence. The presence of human review does not itself establish copyright ownership of generated or pre-existing material.
 
-## Required owner attestation before the publication gate can pass
+## Recorded owner attestation and continuing obligations
 
-The owner must explicitly confirm, in the final release record:
+The owner stated on 2026-08-17: “I fully created this extension.” `docs/evidence/OWNER_ATTESTATION.md` binds that statement to the 3.7.13 candidate source and records its limits. It is treated as the owner's origin attestation for the current application source, `src/content/mp4-remuxer.js`, and four icon files. No copied/adapted-material exception was supplied.
 
-1. Rights to distribute every application source file, especially `src/content/mp4-remuxer.js`.
-2. Rights and originality/licensing for the four icon files.
-3. Origins and licenses for every added browser fixture, screenshot, diagram, social image, and demo asset.
-4. Whether any algorithm, code snippet, design copy, or asset was copied or adapted from a third party and what notice is required.
-5. The intended all-rights-reserved/public-source distribution model or an approved license change.
+The current all-rights-reserved model remains unchanged because the owner did not request a license change. This attestation resolves the current P0 owner-origin blocker, but it does not establish an independent legal conclusion or authorize publication.
 
-Until that attestation exists, provenance is documented but the external publication gate remains closed.
+Every future browser fixture, screenshot, diagram, social image, demo asset, media file, dependency, documentation excerpt, or copied/adapted item still needs an exact source/license record and any required notice. The owner must correct the attestation before publication if an unrecorded exception exists.
