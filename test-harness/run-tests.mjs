@@ -14,6 +14,7 @@ import { buildExtensionState, summarizeUrl } from '../src/shared/report-utils.js
 import { buildReportContext, redactKnownReportText, reportContextsMatch, reportFilesDigest } from '../src/shared/report-privacy.js';
 import { sanitizeLogValue } from '../src/shared/logger.js';
 import { validateMediaUrl, validateMessage } from '../src/shared/validators.js';
+import { reconcileSiteAccessGrant } from '../src/shared/permission-state.js';
 
 const results = runSelfTests();
 assert.equal(results.passed, true, JSON.stringify(results.results.filter((result) => !result.passed)));
@@ -80,6 +81,7 @@ assert.equal(classifyChromeDownloadError('USER_CANCELED'), ERROR_CATEGORIES.USER
 assert.equal(classifyChromeDownloadError('NETWORK_FAILED'), ERROR_CATEGORIES.NETWORK, 'Chrome network interruptions remain retryable network errors');
 
 await testPermissionBoundWebRequestLifecycle();
+await testPermissionDriftReconciliation();
 installChromeStorageStub();
 await testMalformedDiagnosticsAreHarmless();
 await testQueueHistoryClearWinsPendingWrite();
@@ -104,6 +106,8 @@ assert.equal(sidepanelSource.includes("text: String(file.content ?? '')"), true,
 assert.equal(sidepanelSource.includes('MESSAGE_TYPES.VALIDATE_REPORT_PREVIEW'), true, 'report export validates the preview against current source evidence');
 assert.equal(sidepanelSource.includes('reportFilesDigest(files)'), true, 'report export recomputes the exact preview/file-set digest');
 assert.equal(sidepanelSource.includes('invalidateReportPreview'), true, 'side-panel report inputs share an explicit preview-invalidation path');
+assert.equal(sidepanelSource.includes('chrome.permissions?.onRemoved?.addListener'), true, 'persistent side panel observes external site-access revocation');
+assert.equal(sidepanelSource.includes('preserveSiteAccess: permissionRevision !== state.permissionRevision'), true, 'slow scans cannot overwrite a newer permission-drift result');
 assert.equal(sidepanelSource.includes('Screenshots.'), true, 'report UI explicitly states that screenshots are never included');
 const contentSource = await readFile(new URL('../src/content/content.js', import.meta.url), 'utf8');
 assert.equal(contentSource.includes('queryParameterNames'), false, 'runtime HLS errors do not retain sensitive query-parameter names');
@@ -364,6 +368,26 @@ async function testPermissionBoundWebRequestLifecycle() {
   detector.stop();
   assert.equal(permissionAdded.listeners.size, 0, 'stopping the detector removes the permission-added observer');
   assert.equal(permissionRemoved.listeners.size, 0, 'stopping the detector removes the permission-removed observer');
+}
+
+async function testPermissionDriftReconciliation() {
+  const granted = await reconcileSiteAccessGrant(
+    { origin: 'https://media.fixture.invalid/*', granted: false },
+    async (query) => {
+      assert.deepEqual(query, { origins: ['https://media.fixture.invalid/*'] }, 'permission drift checks only the current origin');
+      return true;
+    }
+  );
+  assert.equal(granted.checked, true, 'permission drift checks a known current-site origin');
+  assert.equal(granted.changed, true, 'an external grant is reported as a state change');
+  assert.deepEqual(granted.siteAccess, { origin: 'https://media.fixture.invalid/*', granted: true }, 'external grant updates only the current-site permission state');
+
+  const revoked = await reconcileSiteAccessGrant(granted.siteAccess, async () => false);
+  assert.equal(revoked.changed, true, 'an external revocation is reported as a state change');
+  assert.deepEqual(revoked.siteAccess, { origin: 'https://media.fixture.invalid/*', granted: false }, 'external revocation disables advanced detection in persistent UI state');
+
+  const unavailable = await reconcileSiteAccessGrant(null, async () => true);
+  assert.deepEqual(unavailable, { checked: false, changed: false, siteAccess: null }, 'permission drift is a no-op until a current-site origin is known');
 }
 
 function testChromeEvent() {

@@ -785,6 +785,17 @@
       "origin": "Owner-created private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work."
     },
     {
+      "path": "src/shared/permission-state.js",
+      "bytes": 504,
+      "sha256": "7edb33e7d1c48b8d5bf49d04a7bc35c6a3cda195be066d711d91bf7f55d9f07e",
+      "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",
+      "ownerAttestationRequired": false,
+      "kind": "application-source",
+      "origin": "Owner-created private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work."
+    },
+    {
       "path": "src/shared/report-privacy.js",
       "bytes": 21581,
       "sha256": "a824c45100452d282067c6cd4631427cf615c845e4cdd2ad7316046e212e7341",
@@ -896,8 +907,8 @@
     },
     {
       "path": "src/sidepanel/sidepanel.js",
-      "bytes": 54788,
-      "sha256": "6b8805d970d493fe9c1dca944b29bd79dd91965e2c717e2344e7cac3bae3356b",
+      "bytes": 56456,
+      "sha256": "fda7c3c57f36ae37a27e5ec3f5c1f8535d509fb4d0a6977ce584af529e35c13e",
       "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
       "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
       "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",
@@ -1204,8 +1215,8 @@
     },
     {
       "path": "test-harness/run-tests.mjs",
-      "bytes": 37722,
-      "sha256": "6f2308c90c3736175ccb297efce906b71030971fe9741f3397b7385494bd90f8",
+      "bytes": 39486,
+      "sha256": "609238ae35f1b95534cd2d2dd4ce4c4f48255c611d810799f53bf455eacabd16",
       "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
       "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
       "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",
