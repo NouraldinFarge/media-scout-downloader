@@ -104,7 +104,7 @@ This is a product boundary, not a legal conclusion about any particular media or
 ## Items requiring owner or legal judgment
 
 - Confirm rights/provenance for the complete source, remux implementation, icons, and any future media/demo assets.
-- Confirm the public-source/all-rights-reserved distribution choice; do not call it open source.
+- Preserve the owner-approved MIT license and do not imply that the project license grants rights to third-party media, websites, services, or content.
 - Approve the public privacy-policy and support URLs.
 - Review whether direct HTTP origin support should remain in the store build.
 - Confirm data-category selections against the live dashboard's exact current wording.

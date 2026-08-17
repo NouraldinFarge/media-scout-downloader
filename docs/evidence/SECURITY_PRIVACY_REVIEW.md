@@ -15,7 +15,7 @@ Result: **No unresolved critical or high-severity product security/privacy findi
 | SEC-PRIV-001 | High | Report Preview previously showed paths and sizes while report text could retain page titles, hostnames, and filenames. | Fixed in 3.7.13: exact exposure table, literal safe text preview, stronger default minimization, sensitive-mode confirmation, comprehensive invalidation, exact ZIP equality, and regressions. See `REPORT_PRIVACY_REVIEW.md`. |
 | SEC-PRIV-002 | Medium | Warning/UI error text could relay browser or page errors containing URLs, query data, filenames, or local paths. | Fixed: shared logger and service-worker public error responses pass values through report-grade redaction and omit raw Error objects/stacks. Regression assertions cover URL query, secret field, and local-path removal. |
 | SEC-PRIV-003 | Informational | Default report host/path values are non-cryptographic correlation hashes. | Explicitly documented as correlation-only and not anonymization. Exact identifiers are omitted by default; sensitive mode remains identifying by design. |
-| SEC-PRIV-004 | Evidence gap | CodeQL was not executed locally. | Blocked, not waived: the official standalone CodeQL CLI terms limit use to OSI-approved open-source code or academic research, while this repository is all-rights-reserved. Eligible private GitHub execution may require an organization with GitHub Advanced Security. A pinned remote-ready workflow and actual eligible run belong to P1; no CodeQL-pass claim is allowed now. |
+| SEC-PRIV-004 | Evidence gap | CodeQL has not yet been executed. | The owner-approved MIT License removes the earlier standalone-CLI license blocker. An exact-candidate run and reviewed result are still required; no CodeQL-pass claim is allowed until then. |
 | SEC-PRIV-005 | Evidence gap | Managed permission states and browser-specific download/UI failure behavior are not locally proven by Node tests. | P1 clean-profile Chrome/Brave matrix item; publication wording remains blocked until executed. |
 
 ## Tool evidence
@@ -34,7 +34,7 @@ Raw machine-path-bearing reports were kept outside the repository. Only reviewed
 | Pattern scan | ripgrep + `git grep` | Private-key headers, common GitHub/AWS/Slack token forms, dynamic execution, HTML-string sinks, remote imports, WebSocket/beacon/XHR, high-risk permission/header access | No prohibited match in runtime source; test/static-rule source strings were separately understood. |
 | Git object/whitespace checks | Git 2.55.0.windows.3 | `git fsck --full`; `git diff --check` | Pass. |
 | Staging build | Node.js 24.19.0 | `npm run build` after `21cd0ca` | Pass: 39 runtime files, 698,897 bytes; source/staged manifest SHA-256 both `60c96252046ce2d572e7e8832f91ca935163e7fb1d0183cfbe6ffdfdb0858a99`. This is not a final release ZIP. |
-| CodeQL | Current official bundle observed as 2.25.5; not installed/run | JavaScript | Blocked by repository license/hosting eligibility; no result claimed. |
+| CodeQL | Current official bundle observed as 2.26.3; not yet installed/run | JavaScript | MIT establishes an eligible standalone-CLI route; execution and review are pending. |
 
 Gitleaks 8.30.0 was deliberately used instead of current 8.30.1 because the upstream issue tracker contained a 2026 report that 8.30.1's default rules could return false zero-findings. This review does not rely on that affected version.
 
@@ -69,9 +69,9 @@ Gitleaks 8.30.0 was deliberately used instead of current 8.30.1 because the upst
 
 ## CodeQL constraint and required next action
 
-The [official CodeQL CLI binary repository](https://github.com/github/codeql-cli-binaries) states that standalone CLI use is limited to code under an OSI-approved open-source license or academic research. The [official CodeQL Action repository](https://github.com/github/codeql-action) says private use depends on appropriate GitHub Advanced Security eligibility. This project is private and all-rights-reserved, so downloading/running the CLI here would not be justified by the available terms.
+The [official CodeQL CLI binary repository](https://github.com/github/codeql-cli-binaries) states that standalone CLI use is limited to code under an OSI-approved open-source license or academic research. The owner explicitly approved the OSI-approved MIT License on 2026-08-17, establishing the local standalone-CLI route for this project. The current official Windows bundle is 2.26.3; its release digest must be verified before execution.
 
-P1 may add a workflow pinned to immutable `github/codeql-action` commits, but it must not be called passing until an eligible private GitHub repository runs it successfully against the exact commit. If eligibility is unavailable, the final report must record CodeQL as blocked and must not substitute Semgrep results as a CodeQL pass.
+The required next action is an exact-candidate JavaScript analysis with the verified official CLI, followed by review of the SARIF/diagnostic output. A later GitHub workflow must be pinned and must not be called passing until it actually runs; Semgrep remains separate evidence and is not a CodeQL substitute.
 
 ## Residual publication blockers
 

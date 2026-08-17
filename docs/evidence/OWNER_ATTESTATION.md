@@ -26,7 +26,7 @@ Current release-readiness documents and code changes separately disclose AI assi
 
 - This records an owner assertion; it is not independent proof or a legal opinion about copyright, licensing, trademark, patent, or other rights.
 - It applies to the current candidate material. Every future screenshot, diagram, social image, demo, browser fixture, media file, dependency, copied excerpt, or third-party asset still requires an exact origin/license record.
-- The current `LICENSE.md` remains all rights reserved. The owner did not request a license change, and this record does not authorize one.
+- The owner separately approved changing `LICENSE.md` to the MIT License on 2026-08-17. This provenance record does not authorize any other license change or grant rights in third-party content.
 - This statement does not pass CodeQL, browser compatibility, accessibility, performance, coverage, CI, artifact, store, or recruiter-publication gates.
 - It does not authorize a remote, push, public repository, tag, release, store submission, artifact upload, or professional-profile edit.
 

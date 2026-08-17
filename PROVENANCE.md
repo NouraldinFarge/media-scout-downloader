@@ -4,9 +4,9 @@ Status: private candidate 3.7.13, reviewed 2026-08-17.
 
 ## Distribution and license status
 
-`LICENSE.md` states copyright 2026 Nouraldin Farge and reserves all rights. It does not grant open-source rights and is not an OSI-approved open-source license. Unless the owner makes a separate licensing decision, the project must not be described as open source. If the repository is later made public without a license change, public copy must explain that the source is visible but copying, modification, and distribution remain restricted by `LICENSE.md`.
+At the owner's explicit direction on 2026-08-17, `LICENSE.md` was changed from all rights reserved to the OSI-approved MIT License. Project-specific code and assets in this repository may be described as open source under MIT, subject to the provenance limits below.
 
-No license change was made during release-readiness work. GitHub may display this custom license file but is not expected to classify it as MIT, Apache-2.0, GPL, or another standard SPDX license.
+The MIT License does not grant rights to third-party media, websites, services, trademarks, patents, or content processed with the extension. The authorized-use and no-bypass boundaries remain product policy and safety constraints. GitHub should recognize the standard license text and package metadata as SPDX `MIT`.
 
 ## File-level inventory
 
@@ -70,6 +70,6 @@ AI output is treated as untrusted draft material: changes are diff-reviewed, rel
 
 The owner stated on 2026-08-17: “I fully created this extension.” `docs/evidence/OWNER_ATTESTATION.md` binds that statement to the 3.7.13 candidate source and records its limits. It is treated as the owner's origin attestation for the current application source, `src/content/mp4-remuxer.js`, and four icon files. No copied/adapted-material exception was supplied.
 
-The current all-rights-reserved model remains unchanged because the owner did not request a license change. This attestation resolves the current P0 owner-origin blocker, but it does not establish an independent legal conclusion or authorize publication.
+The owner separately approved changing the project to the MIT License on 2026-08-17. This attestation resolves the current P0 owner-origin blocker, but it does not establish an independent legal conclusion or authorize rights in third-party content.
 
 Every future browser fixture, screenshot, diagram, social image, demo asset, media file, dependency, documentation excerpt, or copied/adapted item still needs an exact source/license record and any required notice. The owner must correct the attestation before publication if an unrecorded exception exists.

@@ -2,6 +2,17 @@
   "name": "media-scout-downloader",
   "private": true,
   "version": "3.7.13",
+  "description": "Local-first Manifest V3 extension for finding and saving browser-visible, authorized media with explicit privacy and compatibility boundaries.",
+  "license": "MIT",
+  "author": "Nouraldin Farge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NouraldinFarge/media-scout-downloader.git"
+  },
+  "homepage": "https://github.com/NouraldinFarge/media-scout-downloader#readme",
+  "bugs": {
+    "url": "https://github.com/NouraldinFarge/media-scout-downloader/issues"
+  },
   "type": "module",
   "scripts": {
     "format": "node test-harness/format-files.mjs",

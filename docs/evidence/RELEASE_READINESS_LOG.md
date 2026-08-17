@@ -17,7 +17,7 @@ Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
 | Truth/version repair | False tag/history wording removed; 3.7.13 aligned in active version surfaces and treated only as a private candidate. | Ledger EV-003/EV-004; changelog/manifest/package/docs. |
 | Report privacy workflow | Exact exposure manifest, literal searchable/selectable previews, minimized default mode, sensitive double opt-in, retention copy, invalidation, fresh-worker validation, exact ZIP equality, and stronger path safety. | `REPORT_PRIVACY_REVIEW.md`; sample; regression gate; ledger EV-005–EV-009. |
 | Security/privacy review | Threat/data-flow model; public-error/log redaction; control/source review; secret/dependency/static scans; local regressions. | `THREAT_MODEL.md`; `SECURITY_PRIVACY_REVIEW.md`; ledger EV-010–EV-016. |
-| Legal/store/provenance drafting | All-rights-reserved truth, file inventory, icons/remux/fixture/AI records, third-party notices, privacy policy, and conservative store-disclosure draft. | `PROVENANCE.md`; `SOURCE_INVENTORY.json`; `THIRD_PARTY_NOTICES.md`; `PRIVACY.md`; store draft; ledger EV-017–EV-020. |
+| Legal/store/provenance drafting | Owner-approved MIT licensing, file inventory, icons/remux/fixture/AI records, third-party notices, privacy policy, and conservative store-disclosure draft. | `LICENSE.md`; `PROVENANCE.md`; `SOURCE_INVENTORY.json`; `THIRD_PARTY_NOTICES.md`; `PRIVACY.md`; store draft; ledger EV-017–EV-020. |
 | Owner creation attestation | Owner stated, “I fully created this extension”; current source/remux/icon origin blocker resolved with explicit limits and no inferred publication approval. | `OWNER_ATTESTATION.md`; ledger EV-030. |
 | Audit and claim control | Required evidence ledger, claim-conflict table, deep finding table, and explicit gate report prepared. | `EVIDENCE_LEDGER.md`; `DEEP_AUDIT_3.7.13.md`; `P0_GATE.md`. |
 
@@ -25,7 +25,7 @@ Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
 
 | Blocker | Reason | Required next authority/evidence |
 | --- | --- | --- |
-| CodeQL exact-commit result | Standalone CLI use is not established as eligible for this all-rights-reserved private repository; no private GitHub Advanced Security context exists in evidence. | Owner chooses an eligible path. Remote creation/push/workflow execution or a license change requires separate explicit approval. |
+| CodeQL exact-commit result | MIT establishes an eligible local CLI route, but the verified official bundle has not yet been executed against the exact candidate. | Download the official bundle, verify its published digest, execute JavaScript analysis, review the result, and rebind P0 evidence. |
 
 ### Deferred by the required sequence
 

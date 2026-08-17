@@ -28,7 +28,8 @@ const document = {
   product: 'Media Scout Downloader',
   candidateVersion: '3.7.13',
   generatedAt: '2026-08-17',
-  license: 'Project code and assets are distributed under LICENSE.md: copyright 2026 Nouraldin Farge, all rights reserved.',
+  license: 'Project code and assets are licensed under LICENSE.md: MIT License, copyright 2026 Nouraldin Farge.',
+  licenseSpdx: 'MIT',
   scope: 'Application/source/test/configuration/assets/documentation and generated sample files. Generated dist/, dependency/tool directories, Git internals, this self-referential output, and the evidence ledger that binds this output hash are excluded.',
   ownerAttestation: {
     recordedAt: '2026-08-17',
@@ -60,7 +61,7 @@ function relative(file) {
 
 function provenanceFor(filePath) {
   const common = {
-    licenseStatus: 'Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.',
+    licenseStatus: 'Covered by repository LICENSE.md (MIT License; SPDX MIT).',
     aiAssistance: 'AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.',
     ownerAttestationStatus: 'Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.',
     ownerAttestationRequired: false

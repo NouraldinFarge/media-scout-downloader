@@ -96,3 +96,7 @@ Manual browser coverage remains mandatory because Chrome extension APIs, browser
 Media Scout has no analytics, ads, telemetry service, cloud account, or remote configuration channel. Reports are generated only on request and exclude raw URLs and query-parameter names by default. Site access can be revoked from Settings.
 
 See [`PRIVACY.md`](PRIVACY.md), [`SECURITY.md`](SECURITY.md), and [`CHANGELOG.md`](CHANGELOG.md). Use the extension only for content you own or are authorized to save.
+
+## License
+
+Media Scout Downloader is licensed under the [MIT License](LICENSE.md). The software license does not grant rights to media, websites, services, or other third-party content; use remains limited to content you own or are authorized to save.
