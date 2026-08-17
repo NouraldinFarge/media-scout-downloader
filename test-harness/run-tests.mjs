@@ -79,6 +79,7 @@ assert.equal(validateMediaUrl(`https://example.com/${'a'.repeat(4096)}.mp4`)?.co
 assert.equal(classifyChromeDownloadError('USER_CANCELED'), ERROR_CATEGORIES.USER_CANCELED, 'Chrome user cancellations are not retried as network errors');
 assert.equal(classifyChromeDownloadError('NETWORK_FAILED'), ERROR_CATEGORIES.NETWORK, 'Chrome network interruptions remain retryable network errors');
 
+await testPermissionBoundWebRequestLifecycle();
 installChromeStorageStub();
 await testMalformedDiagnosticsAreHarmless();
 await testQueueHistoryClearWinsPendingWrite();
@@ -320,6 +321,73 @@ async function testMalformedDiagnosticsAreHarmless() {
   assert.equal(Object.hasOwn(snapshot.strategies, '__proto__'), false, 'corrupt diagnostic prototype keys are discarded');
   assert.equal(Object.hasOwn(snapshot.strategies, 'constructor'), false, 'corrupt diagnostic constructor keys are discarded');
   assert.equal(Object.prototype.success, undefined, 'diagnostic normalization cannot mutate shared object prototypes');
+}
+
+async function testPermissionBoundWebRequestLifecycle() {
+  const permissionOrigins = [];
+  const permissionAdded = testChromeEvent();
+  const permissionRemoved = testChromeEvent();
+  const headersReceived = testChromeEvent();
+  const completed = testChromeEvent();
+  globalThis.chrome = {
+    permissions: {
+      getAll: async () => ({ origins: [...permissionOrigins] }),
+      onAdded: permissionAdded,
+      onRemoved: permissionRemoved
+    },
+    webRequest: {
+      onHeadersReceived: headersReceived,
+      onCompleted: completed
+    }
+  };
+
+  const detector = new MediaDetector({ tabMediaStore: new TabMediaStore(), diagnostics: {}, getSettings: async () => ({}) });
+  await detector.start();
+  assert.equal(headersReceived.registrations.length, 0, 'network observation does not register before optional host access exists');
+  assert.equal(completed.registrations.length, 0, 'completed-request observation does not register before optional host access exists');
+
+  permissionOrigins.push('https://media.fixture.invalid/*');
+  await permissionAdded.emit({ origins: [...permissionOrigins] });
+  assert.deepEqual(headersReceived.registrations[0]?.filter?.urls, ['https://media.fixture.invalid/*'], 'per-site grants bind header observation to the granted origin only');
+  assert.deepEqual(completed.registrations[0]?.filter?.urls, ['https://media.fixture.invalid/*'], 'per-site grants bind completed-request observation to the granted origin only');
+
+  permissionOrigins.splice(0, permissionOrigins.length, 'http://*/*', 'https://*/*');
+  await permissionAdded.emit({ origins: [...permissionOrigins] });
+  assert.equal(headersReceived.removeCount, 1, 'changing host grants removes the stale header listener before replacement');
+  assert.deepEqual(headersReceived.registrations.at(-1)?.filter?.urls, ['http://*/*', 'https://*/*'], 'all-site grants bind observation only after Chrome reports those origins');
+
+  permissionOrigins.length = 0;
+  await permissionRemoved.emit({ origins: ['http://*/*', 'https://*/*'] });
+  assert.equal(headersReceived.listeners.size, 0, 'revoking host access unregisters header observation');
+  assert.equal(completed.listeners.size, 0, 'revoking host access unregisters completed-request observation');
+
+  detector.stop();
+  assert.equal(permissionAdded.listeners.size, 0, 'stopping the detector removes the permission-added observer');
+  assert.equal(permissionRemoved.listeners.size, 0, 'stopping the detector removes the permission-removed observer');
+}
+
+function testChromeEvent() {
+  const listeners = new Set();
+  const registrations = [];
+  let removeCount = 0;
+  return {
+    listeners,
+    registrations,
+    get removeCount() { return removeCount; },
+    addListener(listener, filter, extraInfoSpec) {
+      listeners.add(listener);
+      registrations.push({ listener, filter, extraInfoSpec });
+    },
+    removeListener(listener) {
+      if (listeners.delete(listener)) removeCount += 1;
+    },
+    hasListener(listener) {
+      return listeners.has(listener);
+    },
+    async emit(payload) {
+      await Promise.all([...listeners].map((listener) => listener(payload)));
+    }
+  };
 }
 
 async function testQueueHistoryClearWinsPendingWrite() {

@@ -27,7 +27,7 @@ async function initialize() {
   setDebugLogging(settings.debugLogs);
   await diagnostics.load();
   await downloadManager.initialize();
-  detector.start();
+  await detector.start();
 }
 
 const initializationPromise = initialize().catch((error) => {

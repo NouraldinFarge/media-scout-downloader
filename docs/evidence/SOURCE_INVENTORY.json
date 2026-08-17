@@ -566,8 +566,8 @@
     },
     {
       "path": "src/background/media-detector.js",
-      "bytes": 36225,
-      "sha256": "2034435a3b774d727e063da5308b69969a81d8306cc24a843ca10c06428dc7d8",
+      "bytes": 38215,
+      "sha256": "65efe91c94c75db61036ccb542c9078cdfd7e61541a35bdd292e73a494ee079b",
       "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
       "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
       "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",
@@ -599,8 +599,8 @@
     },
     {
       "path": "src/background/service-worker.js",
-      "bytes": 59233,
-      "sha256": "ee338c72246e76a6e551aa65b5a5018ea6cedfd23394597d816f765a3d67b8a4",
+      "bytes": 59239,
+      "sha256": "929396cf2fce83af2a3b7fbd4b16c9286789715c7351a26ea6506fec9085d271",
       "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
       "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
       "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",
@@ -1204,8 +1204,8 @@
     },
     {
       "path": "test-harness/run-tests.mjs",
-      "bytes": 34540,
-      "sha256": "7f942935e2eeae938f87c46824efa365b9001add91177675c0aa1ffa0f1b2f55",
+      "bytes": 37722,
+      "sha256": "6f2308c90c3736175ccb297efce906b71030971fe9741f3397b7385494bd90f8",
       "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
       "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
       "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",
