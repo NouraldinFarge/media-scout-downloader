@@ -6,7 +6,7 @@ Review date: 2026-08-17 (America/Chicago)
 
 Environment: Windows 11 Pro 10.0.26100 (64-bit), Node.js 24.19.0, npm 11.16.0
 
-Candidate binding: the 3.7.13 report-privacy commit and later immutable artifact manifest must supersede the temporary worktree binding in the evidence ledger.
+Candidate source binding: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`. A later final release artifact manifest must bind the exact publication candidate separately.
 
 ## Controlled fixture
 

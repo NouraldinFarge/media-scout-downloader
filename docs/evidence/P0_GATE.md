@@ -2,6 +2,8 @@
 
 Assessment date: 2026-08-17 (America/Chicago)
 
+Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda` (tree `26a949b294989af7a32440f2576dc705939ed3b7`)
+
 Result: **BLOCKED — do not begin P1 publication work or publish/showcase the project.**
 
 The known high-severity report-preview privacy defect is fixed and no unresolved critical/high product security or privacy finding was identified by the completed local P0 review. P0 still cannot pass because source/remux/icon rights require owner attestation and the required CodeQL result lacks an established eligible execution context.
@@ -11,10 +13,10 @@ The known high-severity report-preview privacy defect is fixed and no unresolved
 | P0 exit criterion | Result | Evidence/reason |
 | --- | --- | --- |
 | Dedicated reviewed branch | Pass | `release-readiness-2026-08-17`; no edit was made directly on `main`. |
-| Clean worktree and honest commits | Pending final evidence-binding commit at initial assessment | Reviewed 3.7.12 snapshot is commit `cfcbf4a`; current P0 implementation/evidence is being committed without fabricated chronology. This row must be updated only after clean status is observed. |
+| Clean source checkpoint and honest commits | Pass | Reviewed 3.7.12 snapshot is commit `cfcbf4a`; P0 source/evidence checkpoint is `21cd0ca`. The status was clean when post-commit checks ran; this follow-up changes only evidence bindings. No chronology was fabricated. |
 | Existing work preserved; no loss | Pass | Verified patch, Git bundle, untracked copies, and SHA-256 manifests outside the repository; ledger EV-001/EV-002. |
 | Truthful history/changelog; no fake tags/releases | Pass | False history claim removed; no remote/tag/release exists; ledger EV-003/EV-028. |
-| Version references aligned | Pass at reviewed worktree | Current candidate surfaces and staged manifest say 3.7.13; historical evidence remains explicitly historical; ledger EV-004. |
+| Version references aligned | Pass at candidate source commit | Current candidate surfaces and staged manifest say 3.7.13; historical evidence remains explicitly historical; ledger EV-004. |
 | Preview truthfully represents export | Pass locally | Exact exposure table, literal text preview, normalized file set, recomputed digest, fresh context validation, parsed ZIP equality; ledger EV-005–EV-009. |
 | Default and sensitive privacy checks | Pass locally | Automated synthetic fixtures plus manual field-by-field read; deterministic sanitized sample; `REPORT_PRIVACY_REVIEW.md`. |
 | No unresolved critical/high product security/privacy defect | Pass for completed local scope | Gitleaks, Semgrep, dependency audit, static/source controls, regressions, threat model; `SECURITY_PRIVACY_REVIEW.md`. Browser-managed cases remain accurately deferred to P1. |
@@ -27,7 +29,7 @@ The known high-severity report-preview privacy defect is fixed and no unresolved
 
 1. **Owner provenance decision.** Complete `OWNER_ATTESTATION_DRAFT.md` for the exact candidate. Any copied/adapted material or license/notice obligation must be identified and resolved.
 2. **CodeQL eligibility and execution.** Select an eligible route and run CodeQL against the exact commit. A private GitHub/GitHub Advanced Security route would require explicit approval before remote creation, push, or workflow execution. A license change is a separate explicit-approval action. Semgrep and local tests do not replace CodeQL.
-3. **Immutable rebinding after resolution.** Rerun all affected local checks, build/sample/inventory, secret/static scans, bind results and hashes to the exact commit, and confirm a clean worktree.
+3. **Publication-final rebinding after resolution.** Rerun all affected local checks, build/sample/inventory, secret/static scans, bind results and hashes to the exact commit, and confirm a clean worktree.
 
 ## Claims supportable now in private review only
 

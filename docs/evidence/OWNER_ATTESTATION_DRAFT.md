@@ -4,7 +4,7 @@ Purpose: resolve the owner-knowledge portions of the private Media Scout Downloa
 
 Candidate version: 3.7.13
 
-Candidate commit SHA: **TO BE FILLED AFTER FINAL CANDIDATE BINDING**
+Candidate source commit SHA: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
 
 Owner/reviewer name: **TO BE FILLED BY OWNER**
 

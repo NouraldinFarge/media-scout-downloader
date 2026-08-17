@@ -4,6 +4,8 @@ Review date: 2026-08-17 (America/Chicago)
 
 Environment: Windows 11 Pro 10.0.26100 (64-bit), Node.js 24.19.0, npm 11.16.0, Git 2.55.0.windows.3
 
+Candidate source binding: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda` (tree `26a949b294989af7a32440f2576dc705939ed3b7`). Quality, build, dependency, Git-integrity, Gitleaks, and Semgrep checks were rerun after this source commit.
+
 Result: **No unresolved critical or high-severity product security/privacy finding was identified in the local P0 review.** The corrected report preview closes the known high-severity privacy/UX finding. This result is not a claim that the extension is secure or vulnerability-free. Clean-profile browser testing, eligible remote CodeQL execution, owner provenance attestations, and final artifact review remain gates.
 
 ## Findings disposition
@@ -22,16 +24,16 @@ Raw machine-path-bearing reports were kept outside the repository. Only reviewed
 
 | Check | Version/configuration | Scope | Result |
 | --- | --- | --- | --- |
-| Gitleaks Git scan | 8.30.0, official Windows x64 release; archive SHA-256 matched official checksum; 100% redaction | Complete two-commit local history | Pass: 2 commits, approximately 930.84 KB, no leaks found, exit 0. |
-| Gitleaks directory scan | 8.30.0; 100% redaction; archive depth 1 | Current working directory including uncommitted candidate evidence | Pass after final P0 code/evidence edits: approximately 1.69 MB, no leaks found, exit 0. |
-| Semgrep Community | 1.173.0; `p/javascript` + `p/security-audit`; metrics off; Git ignores disabled; explicit `src` and `test-harness` roots | All 40 source/test targets, including untracked candidate files; 90 applicable rules from 292 loaded | Pass after final P0 code edits: 0 findings, 0 parse errors, exit 0. |
+| Gitleaks Git scan | 8.30.0, official Windows x64 release; archive SHA-256 matched official checksum; 100% redaction | Complete three-commit local history through `21cd0ca` | Pass: 3 commits, approximately 1.19 MB, no leaks found, exit 0. |
+| Gitleaks directory scan | 8.30.0; 100% redaction; archive depth 1 | Candidate directory plus the final uncommitted documentation-only evidence binding | Pass: approximately 1.69 MB, no leaks found, exit 0. |
+| Semgrep Community | 1.173.0; `p/javascript` + `p/security-audit`; metrics off; Git ignores disabled; explicit `src` and `test-harness` roots | All 40 candidate source/test targets; 90 applicable rules from 292 loaded | Pass after source commit: 0 findings, 0 parse errors, exit 0. |
 | Repository static scanner | Node.js 24.19.0, `npm run lint` (repository invariants; not ESLint) | Manifest, imports, CSP, permissions, dynamic code/HTML injection, markup, contrast, dead module | Pass. Command name will be made accurate or replaced during P1. |
 | Syntax/import gate | Node.js 24.19.0, `npm run typecheck` (syntax only; not compile-time typing) | All JS/MJS plus local import existence | Pass. Misleading script name remains a P1 truth task. |
 | Regression gate | Node.js 24.19.0 | Nine self-test suites plus repository/race/report/security assertions | Pass. |
 | npm inventory/audit | npm 11.16.0 | `npm ls --all`; `npm audit --omit=dev --audit-level=high` | Empty dependency tree; 0 vulnerabilities reported. Absence of dependencies is not proof of security. |
 | Pattern scan | ripgrep + `git grep` | Private-key headers, common GitHub/AWS/Slack token forms, dynamic execution, HTML-string sinks, remote imports, WebSocket/beacon/XHR, high-risk permission/header access | No prohibited match in runtime source; test/static-rule source strings were separately understood. |
 | Git object/whitespace checks | Git 2.55.0.windows.3 | `git fsck --full`; `git diff --check` | Pass. |
-| Staging build | Node.js 24.19.0 | `npm run build` | Pass at this worktree state: 39 runtime files, 698,897 bytes. Supersede after later commits/artifacts. |
+| Staging build | Node.js 24.19.0 | `npm run build` after `21cd0ca` | Pass: 39 runtime files, 698,897 bytes; source/staged manifest SHA-256 both `60c96252046ce2d572e7e8832f91ca935163e7fb1d0183cfbe6ffdfdb0858a99`. This is not a final release ZIP. |
 | CodeQL | Current official bundle observed as 2.25.5; not installed/run | JavaScript | Blocked by repository license/hosting eligibility; no result claimed. |
 
 Gitleaks 8.30.0 was deliberately used instead of current 8.30.1 because the upstream issue tracker contained a 2026 report that 8.30.1's default rules could return false zero-findings. This review does not rely on that affected version.

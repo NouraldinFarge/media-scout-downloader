@@ -4,6 +4,8 @@ Candidate: Media Scout Downloader 3.7.13 private candidate
 
 Updated: 2026-08-17 (America/Chicago)
 
+Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
+
 ## P0 — provenance, privacy, safety, and truth repair
 
 ### Completed
@@ -27,7 +29,7 @@ Updated: 2026-08-17 (America/Chicago)
 
 ### Deferred by the required sequence
 
-- The final immutable P0 evidence binding can be completed only after the two blockers above are resolved.
+- The publication-final immutable evidence/artifact binding can be completed only after the two blockers above are resolved.
 - P1 publication-readiness implementation cannot begin while P0 is blocked.
 
 ## P1 — conventional engineering evidence and release readiness
