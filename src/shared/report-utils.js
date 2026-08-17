@@ -27,7 +27,7 @@ export function summarizeUrl(rawUrl = '') {
 }
 
 export function buildReportFilename(_tab = {}, generatedAt = nowISO()) {
-  const timestamp = generatedAt.replace(/[:.]/g, '-').replace('T', '_').replace('Z', 'Z');
+  const timestamp = generatedAt.replace(/[:.]/g, '-').replace('T', '_');
   return `media-scout-report-${timestamp}.zip`;
 }
 

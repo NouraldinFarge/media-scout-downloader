@@ -54,11 +54,6 @@
     'authorization', 'x-amz-signature', 'x-amz-credential', 'x-amz-expires',
     'x-goog-signature', 'x-goog-credential', 'x-goog-expires', 'key-pair-id'
   ]);
-  // Keep UI/progress updates smooth for long HLS jobs. Progress is still live,
-  // but not sent after every small segment completion.
-  const SEGMENT_PROGRESS_INTERVAL_MS = 550;
-  const SEGMENT_FETCH_TIMEOUT_MS = 45_000;
-  const YIELD_EVERY_COMPLETIONS = 16;
   const AUTO_SCAN_THROTTLE_MS = 1500;
   const activeHlsTasks = new Map();
   let scanTimer = null;

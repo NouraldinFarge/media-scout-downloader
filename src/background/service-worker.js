@@ -304,7 +304,7 @@ async function reloadExtensionAndRefreshPage(message = {}) {
     }
   }
 
-  let updateStatus = 'not-checked';
+  let updateStatus;
   try {
     updateStatus = await requestRuntimeUpdateCheck();
   } catch (error) {

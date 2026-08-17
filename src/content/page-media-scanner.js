@@ -369,9 +369,9 @@
     };
   }
 
-  async function probePlaylistMetadata(literalMediaHints, mediaLikeEntries) {
+  async function probePlaylistMetadata(literalMediaHints = [], mediaLikeEntries = []) {
     const urls = [];
-    for (const item of [...(literalMediaHints || []), ...(mediaLikeEntries || [])]) {
+    for (const item of [...literalMediaHints, ...mediaLikeEntries]) {
       const url = normalizeUrl(item.url || item.name || '');
       if (!url || !/\.(m3u8|mpd)(?:[?#]|$)/i.test(url)) continue;
       if (!urls.includes(url)) urls.push(url);

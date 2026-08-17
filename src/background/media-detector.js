@@ -305,7 +305,7 @@ async function mapWithConcurrency(items, concurrency, mapper) {
   async function worker() {
     while (nextIndex < items.length) {
       const index = nextIndex++;
-      results[index] = await mapper(items[index], index);
+      results[index] = await mapper(items[index]);
     }
   }
   await Promise.all(Array.from({ length: Math.min(Math.max(1, concurrency), items.length) }, () => worker()));
