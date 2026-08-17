@@ -242,8 +242,10 @@
       const normalized = normalizeUrl(entry.name);
       if (!normalized || seen.has(normalized) || !urlLooksMedia(normalized)) continue;
       seen.add(normalized);
-      const item = makeItem(normalized, null, 'performance-resource', '', {
+      const contentType = clipText(entry.contentType || '', 160);
+      const item = makeItem(normalized, null, 'performance-resource', contentType, {
         frameUrl: location.href,
+        mime: contentType,
         initiatorType: entry.initiatorType || '',
         transferSize: entry.transferSize || 0,
         encodedBodySize: entry.encodedBodySize || 0,
@@ -733,7 +735,7 @@
   }
 
   function compactResourceInfo(entry) {
-    return {
+    const info = {
       initiatorType: entry.initiatorType || '',
       transferSize: entry.transferSize || 0,
       encodedBodySize: entry.encodedBodySize || 0,
@@ -743,6 +745,11 @@
       responseEnd: Math.round(entry.responseEnd || 0),
       nextHopProtocol: entry.nextHopProtocol || ''
     };
+    const responseStatus = Number(entry.responseStatus);
+    const contentType = clipText(entry.contentType || '', 160);
+    if (Number.isInteger(responseStatus) && responseStatus >= 0 && responseStatus <= 999) info.responseStatus = responseStatus;
+    if (contentType) info.contentType = contentType;
+    return info;
   }
 
   function rangesToList(ranges) {
@@ -930,6 +937,8 @@
         hostname: host,
         initiatorType: entry.initiatorType || '',
         extension: extensionFromUrl(normalized),
+        responseStatus: Number.isInteger(Number(entry.responseStatus)) ? Number(entry.responseStatus) : null,
+        contentType: clipText(entry.contentType || '', 160),
         transferSize: entry.transferSize || 0,
         encodedBodySize: entry.encodedBodySize || 0,
         decodedBodySize: entry.decodedBodySize || 0,
@@ -943,7 +952,7 @@
           attribute: entry.initiatorType || 'resource',
           tagName: '',
           elementIndex: -1,
-          mime: '',
+          mime: clipText(entry.contentType || '', 160),
           element: null
         });
       } else if (isInteresting) {

@@ -11,6 +11,7 @@ try {
   assert.equal(await health.text(), 'ok\n');
 
   const checks = [
+    ['/no-media.html', 200, 'text/html'],
     ['/generated/scout-demo.mp4', 200, 'video/mp4'],
     ['/generated/scout-demo.webm', 200, 'video/webm'],
     ['/generated/scout-tone.mp3', 200, 'audio/mpeg'],
@@ -40,6 +41,8 @@ try {
 
   const cors = await fetch(`${fixture.origin}/cors/media.mp4`);
   assert.equal(cors.headers.has('access-control-allow-origin'), false, 'CORS failure fixture deliberately omits ACAO');
+  const fixtureScript = await readFile(new URL('../test-fixtures/site/fixture.js', import.meta.url), 'utf8');
+  assert.match(fixtureScript, /location\.hostname === 'localhost' \? '127\.0\.0\.1' : 'localhost'/, 'CORS button always targets the alternate loopback origin');
 
   const encrypted = await (await fetch(`${fixture.origin}/fixtures/encrypted.m3u8`)).text();
   assert.match(encrypted, /#EXT-X-KEY:METHOD=AES-128/, 'protected fixture has an explicit encryption marker');

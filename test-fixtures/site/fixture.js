@@ -5,7 +5,8 @@ for (const button of document.querySelectorAll('[data-fetch]')) {
 }
 
 document.querySelector('#corsButton').addEventListener('click', () => {
-  const crossOriginUrl = `http://127.0.0.1:${location.port}/cors/media.mp4`;
+  const alternateLoopbackHost = location.hostname === 'localhost' ? '127.0.0.1' : 'localhost';
+  const crossOriginUrl = `http://${alternateLoopbackHost}:${location.port}/cors/media.mp4`;
   return runFetch(crossOriginUrl);
 });
 

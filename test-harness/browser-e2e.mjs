@@ -51,13 +51,22 @@ try {
   context.on('page', attachDiagnostics);
   for (const page of context.pages()) attachDiagnostics(page);
 
-  let worker = context.serviceWorkers()[0];
+  let worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 3000 }).catch(() => null);
+  let extensionId = worker ? new URL(worker.url()).host : '';
   if (!worker) {
-    worker = await context.waitForEvent('serviceworker', { timeout: 15000 }).catch(() => null);
+    extensionId = await discoverUnpackedExtensionId(context);
+    const workerStarted = context.waitForEvent('serviceworker', { timeout: 15000 }).catch(() => null);
+    const wakePage = await context.newPage();
+    try {
+      await wakePage.goto(`chrome-extension://${extensionId}/src/popup/popup.html`, { waitUntil: 'domcontentloaded' });
+      worker = context.serviceWorkers()[0] || await workerStarted;
+    } finally {
+      await wakePage.close();
+    }
   }
   assert.ok(worker, `${browserLabel} did not load the unpacked extension service worker; the browser may reject command-line side-loading.`);
-  const extensionId = new URL(worker.url()).host;
   assert.match(extensionId, /^[a-p]{32}$/, 'extension ID has the expected unpacked-extension shape');
+  assert.equal(new URL(worker.url()).host, extensionId, 'the active service worker belongs to the discovered Media Scout extension');
 
   const fixturePage = await context.newPage();
   const fixturePageOrigin = fixture.origin.replace('127.0.0.1', 'localhost');
@@ -65,6 +74,14 @@ try {
   const scannerMetrics = await assertFixturePage(fixturePage);
   accessibilityResults.controlledFixture = scannerMetrics.accessibility;
   await fixturePage.screenshot({ path: path.join(resultRoot, 'controlled-fixture.png'), fullPage: true });
+
+  const noMediaPage = await context.newPage();
+  await noMediaPage.goto(`${fixturePageOrigin}/no-media.html`, { waitUntil: 'networkidle' });
+  await noMediaPage.addScriptTag({ path: path.join(extensionPath, 'src', 'content', 'page-media-scanner.js') });
+  assert.equal((await noMediaPage.evaluate(() => globalThis.MediaScoutPageScanner.scan())).length, 0, 'controlled no-media page exposes zero candidates');
+  accessibilityResults.noMediaFixture = await assertNoBlockingAxeViolations(noMediaPage, 'controlled no-media fixture page');
+  await noMediaPage.screenshot({ path: path.join(resultRoot, 'no-media-fixture.png'), fullPage: true });
+  await noMediaPage.close();
 
   const popupStarted = performance.now();
   const popup = await context.newPage();
@@ -86,6 +103,12 @@ try {
   await sidepanel.waitForSelector('#reports:not(.hidden)');
   accessibilityResults.reportRoute = await assertNoBlockingAxeViolations(sidepanel, 'side panel reports route');
   await sidepanel.screenshot({ path: path.join(resultRoot, 'report-route.png'), fullPage: true });
+  await sidepanel.waitForFunction(() => !/loading|opening/i.test(document.querySelector('#workspaceStatus')?.textContent || ''));
+  await sidepanel.evaluate(async () => {
+    const response = await globalThis.chrome.runtime.sendMessage({ type: 'CLEAR_DETECTED_CACHE' });
+    if (!response?.ok) throw new Error(response?.error || 'Could not isolate synthetic browser candidates.');
+  });
+  await sidepanel.waitForFunction(() => document.querySelector('#countInspector')?.textContent === '0');
   await sidepanel.locator('[data-route="inspector"]').click();
   const render500Ms = await measureCandidateRender(worker, sidepanel, 500, fixture.origin);
   await sidepanel.locator('[data-focus-key="inspector-filter"]').fill('controlled-49');
@@ -164,6 +187,7 @@ try {
     assertions: {
       extensionServiceWorkerLoaded: true,
       fixtureWorkflows: true,
+      noMediaCandidateCount: 0,
       popupAxeBlockingViolations: 0,
       reportRouteAxeBlockingViolations: 0,
       settingsAxeBlockingViolations: 0,
@@ -188,7 +212,7 @@ try {
   if (context) await context.close();
   await fixture.close();
   if (path.dirname(profileRoot) === os.tmpdir() && path.basename(profileRoot).startsWith('media-scout-e2e-')) {
-    await rm(profileRoot, { recursive: true, force: true });
+    await rm(profileRoot, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
   }
 }
 
@@ -197,11 +221,30 @@ function attachDiagnostics(page) {
   page.__mediaScoutDiagnosticsAttached = true;
   page.on('console', (message) => {
     const expectedFixtureCorsFailure = page.url().startsWith('http://localhost:') && /net::ERR_FAILED/i.test(message.text());
-    if (message.type() === 'error' && !expectedFixtureCorsFailure && !/favicon\.ico|cors\/media\.mp4|access-control-allow-origin|cors policy/i.test(message.text())) {
+    const expectedFixtureHttpFailure = page.url().startsWith('http://localhost:') && /status of (?:401|403)\b/i.test(message.text());
+    if (message.type() === 'error' && !expectedFixtureCorsFailure && !expectedFixtureHttpFailure && !/favicon\.ico|cors\/media\.mp4|access-control-allow-origin|cors policy/i.test(message.text())) {
       consoleErrors.push(`${page.url()}: ${message.text()}`);
     }
   });
   page.on('pageerror', (error) => pageErrors.push(`${page.url()}: ${error.message}`));
+}
+
+async function discoverUnpackedExtensionId(context) {
+  const registry = await context.newPage();
+  try {
+    await registry.goto('chrome://extensions/', { waitUntil: 'domcontentloaded' });
+    const extensionId = await registry.waitForFunction(() => {
+      const manager = document.querySelector('extensions-manager')?.shadowRoot;
+      const list = manager?.querySelector('extensions-item-list')?.shadowRoot;
+      const item = Array.from(list?.querySelectorAll('extensions-item') || [])
+        .find((candidate) => candidate.shadowRoot?.querySelector('#name')?.textContent?.trim() === 'Media Scout Downloader');
+      return item?.id || '';
+    }, undefined, { timeout: 15000 }).then((handle) => handle.jsonValue());
+    assert.match(extensionId, /^[a-p]{32}$/, 'Chrome extension registry exposes the unpacked Media Scout candidate');
+    return extensionId;
+  } finally {
+    await registry.close();
+  }
 }
 
 async function assertFixturePage(page) {
@@ -217,8 +260,34 @@ async function assertFixturePage(page) {
   await page.waitForSelector('video[data-fixture="page-local-blob"]');
   await page.locator('[data-fetch="/fixtures/encrypted.m3u8"]').click();
   await page.waitForFunction(() => document.querySelector('#fixtureStatus')?.textContent?.includes('HTTP 200'));
+  for (const [selector, expectedStatus] of [
+    ['[data-fetch="/empty/media.mp4"]', 200],
+    ['[data-fetch="/slow/media.mp4"]', 200],
+    ['[data-fetch="/auth/media.mp4"]', 401],
+    ['[data-fetch^="/expired/media.mp4"]', 403]
+  ]) {
+    await page.locator(selector).click();
+    await page.waitForFunction((status) => document.querySelector('#fixtureStatus')?.textContent?.includes(`HTTP ${status}`), expectedStatus);
+  }
   await page.locator('#corsButton').click();
   await page.waitForFunction(() => /blocked or failed/i.test(document.querySelector('#fixtureStatus')?.textContent || ''));
+  const failureResources = await page.evaluate(() => globalThis.MediaScoutPageScanner.scan()
+    .filter((item) => /\/(empty|slow|auth|expired|cors)\/media\.mp4/.test(item.url))
+    .map((item) => ({ url: item.url, mime: item.mime, type: item.type, resourceInfo: item.resourceInfo })));
+  const resourceFor = (pathname) => failureResources.find((item) => new URL(item.url).pathname === pathname);
+  for (const [pathname, responseStatus, contentType] of [
+    ['/empty/media.mp4', 200, 'video/mp4'],
+    ['/slow/media.mp4', 200, 'video/mp4'],
+    ['/auth/media.mp4', 401, 'text/plain'],
+    ['/expired/media.mp4', 403, 'text/plain'],
+    ['/cors/media.mp4', 0, '']
+  ]) {
+    const resource = resourceFor(pathname);
+    assert.ok(resource, `page scanner retains ${pathname}`);
+    assert.equal(resource.resourceInfo?.responseStatus, responseStatus, `${pathname} response status survives the scanner boundary`);
+    assert.equal(resource.resourceInfo?.contentType || '', contentType, `${pathname} content type survives the scanner boundary`);
+    assert.equal(resource.mime || '', contentType, `${pathname} content type is promoted to the candidate MIME`);
+  }
   await page.locator('#pathologicalButton').click();
   assert.equal(await page.locator('#pathologicalFixture > *').count(), 20000);
   const pathologicalScanMs = await page.evaluate(async () => {

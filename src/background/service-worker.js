@@ -837,7 +837,11 @@ function legacyBroadMediaScan() {
   const resources = typeof performance?.getEntriesByType === 'function' ? performance.getEntriesByType('resource') : [];
   for (const entry of (resources || []).slice(-MAX_RESOURCE_ENTRIES)) {
     if (items.length >= MAX_CANDIDATES) break;
+    const contentType = String(entry.contentType || '').slice(0, 160);
+    const responseStatus = Number(entry.responseStatus);
     push(entry.name, 'performance-resource', {
+      type: contentType,
+      mime: contentType,
       initiatorType: entry.initiatorType || '',
       transferSize: entry.transferSize || 0,
       encodedBodySize: entry.encodedBodySize || 0,
@@ -849,7 +853,10 @@ function legacyBroadMediaScan() {
         encodedBodySize: entry.encodedBodySize || 0,
         decodedBodySize: entry.decodedBodySize || 0,
         duration: Math.round(entry.duration || 0),
-        startTime: Math.round(entry.startTime || 0)
+        startTime: Math.round(entry.startTime || 0),
+        nextHopProtocol: entry.nextHopProtocol || '',
+        ...(Number.isInteger(responseStatus) && responseStatus >= 0 && responseStatus <= 999 ? { responseStatus } : {}),
+        ...(contentType ? { contentType } : {})
       }
     });
   }

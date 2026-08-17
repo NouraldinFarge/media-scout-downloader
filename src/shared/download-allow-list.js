@@ -47,6 +47,8 @@ export function getDownloadAllowDecision(media = {}, options = {}) {
   const mediaType = resolveAllowListMediaType(media, declaredMediaType);
 
   if (!url) return deny('missing-url', 'This item does not expose a downloadable URL.', ERROR_CATEGORIES.VALIDATION);
+  const unavailablePerformanceResource = performanceResourceFailureDecision(media);
+  if (unavailablePerformanceResource) return unavailablePerformanceResource;
 
   if (mediaType === MEDIA_TYPES.HLS) return hlsDecision(media, method, options);
   if (mediaType === MEDIA_TYPES.DASH) return dashManifestDecision(media, options);
@@ -57,6 +59,35 @@ export function getDownloadAllowDecision(media = {}, options = {}) {
   if (mediaType === MEDIA_TYPES.SUBTITLE || mediaType === MEDIA_TYPES.IMAGE) return companionFileDecision({ ...media, mediaType }, options);
   if (mediaType === MEDIA_TYPES.METADATA) return metadataFileDecision({ ...media, mediaType }, options);
   return deny('media-type-not-allowed', 'This detected item is not on the download allow list.', ERROR_CATEGORIES.UNSUPPORTED, { action: 'unsupported' });
+}
+
+function performanceResourceFailureDecision(media = {}) {
+  if (media.source !== SOURCES.PERFORMANCE || !/^(?:fetch|xmlhttprequest)$/i.test(String(media.initiatorType || media.resourceInfo?.initiatorType || ''))) return null;
+  const info = media.resourceInfo;
+  const responseStatus = Number(info?.responseStatus);
+  if (Number.isInteger(responseStatus) && responseStatus >= 400 && responseStatus <= 599) {
+    const authenticationRequired = responseStatus === 401 || responseStatus === 407;
+    const accessDenied = responseStatus === 403;
+    const code = authenticationRequired
+      ? 'performance-resource-authentication-response'
+      : accessDenied
+        ? 'performance-resource-access-denied-response'
+        : 'performance-resource-http-error-response';
+    const category = authenticationRequired
+      ? ERROR_CATEGORIES.AUTHENTICATION
+      : accessDenied
+        ? ERROR_CATEGORIES.ACCESS_CONTROL
+        : ERROR_CATEGORIES.NETWORK;
+    return deny(code, `The page fetch returned HTTP ${responseStatus} instead of a successful media response, so Media Scout will not hand this URL to Chrome Downloads.`, category, { action: 'save-final-media', confidence: 'high', riskFlags: ['http-error-response', `http-status-${responseStatus}`] });
+  }
+  if (!info || info.encodedBodySize == null || info.decodedBodySize == null || !Number.isFinite(Number(info.encodedBodySize)) || !Number.isFinite(Number(info.decodedBodySize))) return null;
+  if (Number(info.encodedBodySize) !== 0 || Number(info.decodedBodySize) !== 0) return null;
+  const transferSize = Number(info.transferSize);
+  const nextHopProtocol = String(info.nextHopProtocol || '').trim();
+  if (Number.isFinite(transferSize) && transferSize === 0 && !nextHopProtocol) {
+    return deny('browser-blocked-performance-resource', 'The page fetch produced no browser-readable response. CORS, network, or access-control policy may have blocked it, so Media Scout will not hand this URL to Chrome Downloads.', ERROR_CATEGORIES.CORS, { action: 'save-final-media', confidence: 'high', riskFlags: ['zero-body-performance-resource', 'browser-blocked-fetch'] });
+  }
+  return deny('empty-performance-resource', 'The page fetch completed with an empty response body, so Media Scout will not present it as a downloadable media file.', ERROR_CATEGORIES.NETWORK, { action: 'save-final-media', confidence: 'high', riskFlags: ['zero-body-performance-resource', 'empty-response'] });
 }
 
 export function buildDownloadAllowSummary(media = {}, settings = {}) {
@@ -827,7 +858,12 @@ function hasHardProtectionMarker(media = {}, { allowSignedOnly = false } = {}) {
 
 function isSignedOnlyProtectionMarker(media = {}) {
   const reason = protectionReason(media).toLowerCase();
-  const hasSignedHint = Boolean(media.signedOrExpiringHint || topLevelUrlLooksProtected(media) || /signed|signature|token|expir|x-amz|x-goog|key-pair-id/.test(reason));
+  const inspectionWasDeferred = Boolean(media.playlist?.inspectionDeferred || media.manifest?.inspectionDeferred);
+  const hasSignedHint = Boolean(
+    media.signedOrExpiringHint
+    || topLevelUrlLooksProtected(media)
+    || (!inspectionWasDeferred && /signed|signature|token|expir|x-amz|x-goog|key-pair-id/.test(reason))
+  );
   if (!hasSignedHint) return false;
   return !/(encrypted|#ext-x-key|contentprotection|drm|widevine|playready|clearkey|mspr|paywall|cors|forbidden|unauthori[sz]ed|authentication|access-control|login|required)/i.test(reason);
 }
