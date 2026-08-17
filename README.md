@@ -2,7 +2,7 @@
 
 Media Scout Downloader is a local-first Chrome Manifest V3 extension for finding and downloading media that the active page has already exposed to the browser. It favors a clear recommendation in the popup, keeps advanced evidence in a named side-panel workspace, and fails closed when a path would require bypassing access controls.
 
-Version 3.7.13 is a private release-readiness candidate. Complete the documented P0/P1 gates and manual browser matrix in [`TEST_PLAN.md`](TEST_PLAN.md) before making a public-release claim.
+Version 3.7.13 is a private release-readiness candidate. P0 provenance/privacy/security review is complete; the P1 browser, accessibility, performance, CI, and artifact gates in [`TEST_PLAN.md`](TEST_PLAN.md) must still pass before public publication.
 
 ## What it does
 

@@ -4,9 +4,9 @@ Review date: 2026-08-17 (America/Chicago)
 
 Environment: Windows 11 Pro 10.0.26100 (64-bit), Node.js 24.19.0, npm 11.16.0, Git 2.55.0.windows.3
 
-Candidate source binding: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda` (tree `26a949b294989af7a32440f2576dc705939ed3b7`). Quality, build, dependency, Git-integrity, Gitleaks, and Semgrep checks were rerun after this source commit.
+Candidate source binding: `91c070412f844c9c541a4b8622f0efd70e3f20c9` (tree `33e3fff6c3505be36e287d50e877aea40946eae7`). Quality, build, dependency, Git-integrity, Gitleaks, Semgrep, and CodeQL checks were rerun for this source commit.
 
-Result: **No unresolved critical or high-severity product security/privacy finding was identified in the local P0 review.** The corrected report preview closes the known high-severity privacy/UX finding. This result is not a claim that the extension is secure or vulnerability-free. Clean-profile browser testing, eligible remote CodeQL execution, future-asset provenance, and final artifact review remain gates.
+Result: **No unresolved critical or high-severity product security/privacy finding was identified in the completed P0 review.** The corrected report preview closes the known high-severity privacy/UX finding, and the final exact-commit CodeQL security-and-quality analysis returned zero results. This is not a claim that the extension is secure or vulnerability-free. Clean-profile browser testing, future-asset provenance, and final artifact review remain later gates.
 
 ## Findings disposition
 
@@ -15,7 +15,7 @@ Result: **No unresolved critical or high-severity product security/privacy findi
 | SEC-PRIV-001 | High | Report Preview previously showed paths and sizes while report text could retain page titles, hostnames, and filenames. | Fixed in 3.7.13: exact exposure table, literal safe text preview, stronger default minimization, sensitive-mode confirmation, comprehensive invalidation, exact ZIP equality, and regressions. See `REPORT_PRIVACY_REVIEW.md`. |
 | SEC-PRIV-002 | Medium | Warning/UI error text could relay browser or page errors containing URLs, query data, filenames, or local paths. | Fixed: shared logger and service-worker public error responses pass values through report-grade redaction and omit raw Error objects/stacks. Regression assertions cover URL query, secret field, and local-path removal. |
 | SEC-PRIV-003 | Informational | Default report host/path values are non-cryptographic correlation hashes. | Explicitly documented as correlation-only and not anonymization. Exact identifiers are omitted by default; sensitive mode remains identifying by design. |
-| SEC-PRIV-004 | Evidence gap | CodeQL has not yet been executed. | The owner-approved MIT License removes the earlier standalone-CLI license blocker. An exact-candidate run and reviewed result are still required; no CodeQL-pass claim is allowed until then. |
+| SEC-PRIV-004 | Resolved P0 evidence gap | CodeQL had not been executed. | Owner-approved MIT enabled the official CLI route. The first run found eight quality issues; all were fixed. CodeQL 2.26.3 then analyzed exact commit `91c0704` with 201 SARIF rules and returned zero results. See `CODEQL_3.7.13.md`. |
 | SEC-PRIV-005 | Evidence gap | Managed permission states and browser-specific download/UI failure behavior are not locally proven by Node tests. | P1 clean-profile Chrome/Brave matrix item; publication wording remains blocked until executed. |
 
 ## Tool evidence
@@ -24,17 +24,17 @@ Raw machine-path-bearing reports were kept outside the repository. Only reviewed
 
 | Check | Version/configuration | Scope | Result |
 | --- | --- | --- | --- |
-| Gitleaks Git scan | 8.30.0, official Windows x64 release; archive SHA-256 matched official checksum; 100% redaction | Complete three-commit local history through `21cd0ca` | Pass: 3 commits, approximately 1.19 MB, no leaks found, exit 0. |
-| Gitleaks directory scan | 8.30.0; 100% redaction; archive depth 1 | Candidate directory plus the final uncommitted documentation-only evidence binding | Pass: approximately 1.69 MB, no leaks found, exit 0. |
-| Semgrep Community | 1.173.0; `p/javascript` + `p/security-audit`; metrics off; Git ignores disabled; explicit `src` and `test-harness` roots | All 40 candidate source/test targets; 90 applicable rules from 292 loaded | Pass after source commit: 0 findings, 0 parse errors, exit 0. |
+| Gitleaks Git scan | 8.30.0, official Windows x64 release; archive SHA-256 matched official checksum; 100% redaction | All seven commits through `91c0704` | Pass: approximately 1.27 MB, no leaks found, exit 0. |
+| Gitleaks directory scan | 8.30.0; 100% redaction; archive depth 1 | Current P0 worktree before evidence binding | Pass: approximately 1.70 MB, no leaks found, exit 0. |
+| Semgrep Community | 1.173.0; `p/javascript` + `p/security-audit`; metrics off; Git ignores disabled; explicit `src` and `test-harness` roots | All 40 source/test targets at `91c0704`; 90 applicable rules from 292 loaded | Pass: 0 findings, 0 parse errors, exit 0. |
 | Repository static scanner | Node.js 24.19.0, `npm run lint` (repository invariants; not ESLint) | Manifest, imports, CSP, permissions, dynamic code/HTML injection, markup, contrast, dead module | Pass. Command name will be made accurate or replaced during P1. |
 | Syntax/import gate | Node.js 24.19.0, `npm run typecheck` (syntax only; not compile-time typing) | All JS/MJS plus local import existence | Pass. Misleading script name remains a P1 truth task. |
 | Regression gate | Node.js 24.19.0 | Nine self-test suites plus repository/race/report/security assertions | Pass. |
 | npm inventory/audit | npm 11.16.0 | `npm ls --all`; `npm audit --omit=dev --audit-level=high` | Empty dependency tree; 0 vulnerabilities reported. Absence of dependencies is not proof of security. |
 | Pattern scan | ripgrep + `git grep` | Private-key headers, common GitHub/AWS/Slack token forms, dynamic execution, HTML-string sinks, remote imports, WebSocket/beacon/XHR, high-risk permission/header access | No prohibited match in runtime source; test/static-rule source strings were separately understood. |
 | Git object/whitespace checks | Git 2.55.0.windows.3 | `git fsck --full`; `git diff --check` | Pass. |
-| Staging build | Node.js 24.19.0 | `npm run build` after `21cd0ca` | Pass: 39 runtime files, 698,897 bytes; source/staged manifest SHA-256 both `60c96252046ce2d572e7e8832f91ca935163e7fb1d0183cfbe6ffdfdb0858a99`. This is not a final release ZIP. |
-| CodeQL | Current official bundle observed as 2.26.3; not yet installed/run | JavaScript | MIT establishes an eligible standalone-CLI route; execution and review are pending. |
+| Staging build | Node.js 24.19.0 | `npm run build` at `91c0704` | Pass: 39 runtime files, 698,567 bytes; source/staged manifest SHA-256 both `60c96252046ce2d572e7e8832f91ca935163e7fb1d0183cfbe6ffdfdb0858a99`. This is not a final release ZIP. |
+| CodeQL | CLI 2.26.3; `codeql/javascript-queries` 2.4.3; security-and-quality suite | Exact Git archive of `91c0704`; 33/33 JavaScript files and 1/1 workflow; 201 SARIF rules | Pass: zero results; reviewed SARIF SHA-256 `2340d5040c2e2ec2dabab4964e62f8336c879663587f783b56adc39b833c7831`. |
 
 Gitleaks 8.30.0 was deliberately used instead of current 8.30.1 because the upstream issue tracker contained a 2026 report that 8.30.1's default rules could return false zero-findings. This review does not rely on that affected version.
 
@@ -67,11 +67,11 @@ Gitleaks 8.30.0 was deliberately used instead of current 8.30.1 because the upst
 - Full runtime candidates necessarily contain media URLs and filenames while the user is deciding/downloading. They stay in memory and are invalidated on document lifecycle changes; persistence uses reduced schemas.
 - The extension handles Chrome-defined user data (website content/resources and browsing/resource activity) even without developer transmission. `PRIVACY.md` and the store draft disclose that conservative interpretation.
 
-## CodeQL constraint and required next action
+## CodeQL disposition
 
-The [official CodeQL CLI binary repository](https://github.com/github/codeql-cli-binaries) states that standalone CLI use is limited to code under an OSI-approved open-source license or academic research. The owner explicitly approved the OSI-approved MIT License on 2026-08-17, establishing the local standalone-CLI route for this project. The current official Windows bundle is 2.26.3; its release digest must be verified before execution.
+The [official CodeQL CLI binary repository](https://github.com/github/codeql-cli-binaries) states that standalone CLI use is limited to code under an OSI-approved open-source license or academic research. The owner explicitly approved the OSI-approved MIT License on 2026-08-17. The official CodeQL 2.26.3 Windows archive matched its published SHA-256 before extraction.
 
-The required next action is an exact-candidate JavaScript analysis with the verified official CLI, followed by review of the SARIF/diagnostic output. A later GitHub workflow must be pinned and must not be called passing until it actually runs; Semgrep remains separate evidence and is not a CodeQL substitute.
+The first scan's eight non-security quality findings were fixed, then a fresh database for exact commit `91c0704` returned zero security-and-quality results. Full method, hashes, scope, and limitations are recorded in `CODEQL_3.7.13.md`. A later GitHub workflow still must run before any remote-CI claim; Semgrep remains separate evidence rather than a CodeQL substitute.
 
 ## Residual publication blockers
 

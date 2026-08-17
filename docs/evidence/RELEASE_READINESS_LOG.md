@@ -4,7 +4,7 @@ Candidate: Media Scout Downloader 3.7.13 private candidate
 
 Updated: 2026-08-17 (America/Chicago)
 
-Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
+Current P0 source commit: `91c070412f844c9c541a4b8622f0efd70e3f20c9`
 
 ## P0 — provenance, privacy, safety, and truth repair
 
@@ -19,22 +19,22 @@ Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
 | Security/privacy review | Threat/data-flow model; public-error/log redaction; control/source review; secret/dependency/static scans; local regressions. | `THREAT_MODEL.md`; `SECURITY_PRIVACY_REVIEW.md`; ledger EV-010–EV-016. |
 | Legal/store/provenance drafting | Owner-approved MIT licensing, file inventory, icons/remux/fixture/AI records, third-party notices, privacy policy, and conservative store-disclosure draft. | `LICENSE.md`; `PROVENANCE.md`; `SOURCE_INVENTORY.json`; `THIRD_PARTY_NOTICES.md`; `PRIVACY.md`; store draft; ledger EV-017–EV-020. |
 | Owner creation attestation | Owner stated, “I fully created this extension”; current source/remux/icon origin blocker resolved with explicit limits and no inferred publication approval. | `OWNER_ATTESTATION.md`; ledger EV-030. |
+| MIT license decision | Owner explicitly approved MIT; standard license text and SPDX/package/provenance wording are aligned while third-party-content limits remain explicit. | Commit `2a9e137`; ledger EV-018/EV-033. |
+| CodeQL exact-commit review | Initial scan found eight quality issues; all were fixed. Fresh CodeQL 2.26.3 analysis of `91c0704` returned zero results across all 33 JavaScript files and the workflow. | `CODEQL_3.7.13.md`; ledger EV-016/EV-034/EV-035. |
 | Audit and claim control | Required evidence ledger, claim-conflict table, deep finding table, and explicit gate report prepared. | `EVIDENCE_LEDGER.md`; `DEEP_AUDIT_3.7.13.md`; `P0_GATE.md`. |
 
-### Blocked
+### P0 result
 
-| Blocker | Reason | Required next authority/evidence |
-| --- | --- | --- |
-| CodeQL exact-commit result | MIT establishes an eligible local CLI route, but the verified official bundle has not yet been executed against the exact candidate. | Download the official bundle, verify its published digest, execute JavaScript analysis, review the result, and rebind P0 evidence. |
+**Pass.** No unresolved P0 blocker remains at source commit `91c0704`. This does not pass P1, P2, or the public-publication gate.
 
-### Deferred by the required sequence
+### Next phase
 
-- The publication-final immutable evidence/artifact binding can be completed only after the CodeQL blocker above is resolved.
-- P1 publication-readiness implementation cannot begin while P0 is blocked.
+- P1 publication-readiness implementation may begin.
+- The project remains private while conventional tooling, browser/accessibility/performance evidence, remote CI, and immutable artifacts are completed.
 
 ## P1 — conventional engineering evidence and release readiness
 
-Status: **Not started; gated by P0.** Existing local checks/build remain useful P0 evidence but are not counted as P1 completion.
+Status: **In progress; P0 passed.** Existing local checks/build remain useful P0 evidence but are not counted as P1 completion.
 
 Deferred work includes conventional lint/static checking, coverage thresholds, controlled fixtures, real-browser E2E, exact Chrome/Brave clean-profile matrix, accessibility/NVDA, performance/memory budgets, clean-checkout remote-ready CI with eligible CodeQL, deterministic ZIP/source archive, checksums, SPDX SBOM, build manifest/provenance, release notes, known limitations, and release checklist.
 
@@ -46,4 +46,4 @@ The private design DOCX received structural review only. A public implementation
 
 ## External actions
 
-No remote was created, no branch was pushed, no repository setting was changed, no tag/release/store item was created, no artifact was uploaded, and no résumé/portfolio/GitHub profile/LinkedIn/Indeed surface was edited. All such actions remain subject to separate action-time approval after the final gate passes.
+The owner authorized creation of `NouraldinFarge/media-scout-downloader` as a private staging repository and its first push, and requested eventual public GitHub publication after the gates pass. No PR, tag, release, store item, artifact upload, profile pin, résumé/portfolio edit, LinkedIn/Indeed edit, or other external action has been authorized or completed by this record.

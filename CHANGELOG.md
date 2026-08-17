@@ -8,6 +8,8 @@
 - Normalize and de-duplicate report paths before both preview and ZIP generation so exported paths and contents exactly match the reviewed file set.
 - Invalidate previews when the source tab, scan, candidate state, queue/history, settings, permissions, diagnostics, or sensitivity changes, and revalidate current evidence immediately before export.
 - Add synthetic regression coverage for identifiers, embedded/relative/blob/credential URLs, query data, secrets, Unicode, ZIP traversal, preview invalidation, stale source evidence, and preview/export equality.
+- Adopt the owner-approved MIT License and align SPDX/package/provenance wording while preserving the authorized-media and no-bypass boundary.
+- Run the official CodeQL JavaScript security-and-quality suite, resolve all eight initial maintainability findings, and verify a zero-result rerun against the corrected exact source commit.
 
 ## 3.7.12 - 2026-08-16
 
