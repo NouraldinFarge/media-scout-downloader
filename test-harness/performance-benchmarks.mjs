@@ -14,6 +14,7 @@ import { createZipBlob } from '../src/shared/zip-utils.js';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const resultRoot = path.join(root, 'test-results', 'performance');
+const budgetMultiplier = performanceBudgetMultiplier(process.env.MEDIA_SCOUT_PERF_BUDGET_MULTIPLIER);
 await mkdir(resultRoot, { recursive: true });
 installChromeStub();
 
@@ -100,13 +101,16 @@ const result = {
     totalMemoryGiB: round(os.totalmem() / (1024 ** 3), 2)
   },
   timingMethod: 'performance.now; warm-up excluded; isolated local process',
+  budgetMultiplier,
   benchmarks,
   result: failed.length ? 'FAIL' : 'PASS'
 };
 await writeFile(path.join(resultRoot, 'node-benchmark.json'), `${JSON.stringify(result, null, 2)}\n`);
+console.log(`Performance gate ${failed.length ? 'FAIL' : 'PASS'}: ${benchmarks.length} repeatable Node benchmarks used a ${budgetMultiplier}x timing-budget multiplier.`);
+for (const entry of benchmarks) {
+  console.log(`- ${entry.pass ? 'PASS' : 'FAIL'} ${entry.name}: median ${entry.medianMs} ms / ${entry.budgetMedianMs} ms, p95 ${entry.p95Ms} ms / ${entry.budgetP95Ms} ms (${entry.runs} runs)`);
+}
 if (failed.length) throw new Error(`Performance budgets failed: ${failed.map((entry) => entry.name).join(', ')}`);
-console.log(`Performance gate PASS: ${benchmarks.length} repeatable Node benchmarks met median and p95 budgets.`);
-for (const entry of benchmarks) console.log(`- ${entry.name}: median ${entry.medianMs} ms, p95 ${entry.p95Ms} ms (${entry.runs} runs)`);
 
 async function measure(name, runs, operation, budget) {
   for (let index = 0; index < 3; index += 1) await operation();
@@ -119,15 +123,29 @@ async function measure(name, runs, operation, budget) {
   samples.sort((left, right) => left - right);
   const medianMs = round(percentile(samples, 0.5), 3);
   const p95Ms = round(percentile(samples, 0.95), 3);
+  const budgetMedianMs = round(budget.medianMs * budgetMultiplier, 3);
+  const budgetP95Ms = round(budget.p95Ms * budgetMultiplier, 3);
   return {
     name,
     runs,
     medianMs,
     p95Ms,
-    budgetMedianMs: budget.medianMs,
-    budgetP95Ms: budget.p95Ms,
-    pass: medianMs <= budget.medianMs && p95Ms <= budget.p95Ms
+    baseBudgetMedianMs: budget.medianMs,
+    baseBudgetP95Ms: budget.p95Ms,
+    budgetMultiplier,
+    budgetMedianMs,
+    budgetP95Ms,
+    pass: medianMs <= budgetMedianMs && p95Ms <= budgetP95Ms
   };
+}
+
+function performanceBudgetMultiplier(rawValue) {
+  if (rawValue == null || rawValue === '') return 1;
+  const value = Number(rawValue);
+  if (!Number.isFinite(value) || value < 1 || value > 3) {
+    throw new Error('MEDIA_SCOUT_PERF_BUDGET_MULTIPLIER must be a number from 1 through 3.');
+  }
+  return value;
 }
 
 function percentile(values, ratio) {

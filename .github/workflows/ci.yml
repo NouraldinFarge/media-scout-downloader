@@ -29,6 +29,9 @@ jobs:
         run: npm ci
 
       - name: Run repository quality gate
+        env:
+          # GitHub-hosted CPU capacity varies; local release gates retain the strict 1x budgets.
+          MEDIA_SCOUT_PERF_BUDGET_MULTIPLIER: '2'
         run: npm run check
 
       - name: Build extension staging directory
