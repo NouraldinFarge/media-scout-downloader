@@ -221,8 +221,27 @@ textarea { min-height: 100px; resize: vertical; }
 .notice.success { border-color: color-mix(in srgb, var(--success) 30%, transparent); color: var(--text-main); background: color-mix(in srgb, var(--success) 8%, transparent); }
 
 .report-file-list, .checklist, .batch-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.report-file-list li, .checklist li, .batch-list li { padding: var(--space-2) var(--space-3); border: 1px solid var(--border-subtle); border-radius: 12px; background: rgba(255,255,255,.035); color: var(--text-muted); }
+.checklist li, .batch-list li { padding: var(--space-2) var(--space-3); border: 1px solid var(--border-subtle); border-radius: 12px; background: rgba(255,255,255,.035); color: var(--text-muted); }
 .checklist strong { color: var(--text-main); }
+
+.report-exposure-wrap { margin-top: var(--space-4); overflow-x: auto; }
+.report-exposure-wrap h3 { margin: 0 0 var(--space-2); font-size: 15px; }
+.report-exposure { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 12px; }
+.report-exposure th, .report-exposure td { padding: 8px 10px; border: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
+.report-exposure thead th { background: rgba(255,255,255,.06); color: var(--text-main); }
+.report-exposure tbody th { width: 22%; color: var(--text-main); }
+.report-exposure td { color: var(--text-muted); line-height: 1.45; }
+.report-retention { display: grid; gap: 5px; margin-top: var(--space-4); }
+.report-retention strong { color: var(--text-main); }
+.report-search-label { display: grid; gap: 7px; margin-top: var(--space-4); color: var(--text-main); font-size: 12px; font-weight: 760; }
+.report-match-count { margin: var(--space-2) 0 !important; font-size: 12px; }
+.report-file { overflow: hidden; border: 1px solid var(--border-subtle); border-radius: 12px; background: rgba(255,255,255,.035); }
+.report-file summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: var(--space-3); color: var(--text-main); cursor: pointer; overflow-wrap: anywhere; list-style: none; }
+.report-file summary::-webkit-details-marker { display: none; }
+.report-file summary::before { content: '▸'; color: var(--accent); font-size: 14px; }
+.report-file[open] summary::before { content: '▾'; }
+.report-file[open] summary { border-bottom: 1px solid var(--border-subtle); }
+.report-file-content { max-height: 420px; margin: 0; padding: var(--space-3); overflow: auto; background: rgba(8,10,15,.58); color: var(--text-main); font-family: var(--mono); font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
 
 .workspace-footer {
   display: flex;
@@ -244,6 +263,7 @@ textarea { min-height: 100px; resize: vertical; }
   body { background: Canvas; }
   .button.primary { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
   .recommendation-card::before { display: none; }
+  .report-file-content { background: Canvas; color: CanvasText; }
 }
 
 .manual-grid {

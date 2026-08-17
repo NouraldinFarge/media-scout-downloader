@@ -223,10 +223,10 @@
         </div>
       </div>
       <div class="toggle-grid">
-        <label class="switch"><input id="includeSensitiveUrlsInReports" type="checkbox"><span>Allow full URLs in diagnostic reports after confirmation</span></label>
+        <label class="switch"><input id="includeSensitiveUrlsInReports" type="checkbox"><span>Allow sensitive URL reports after a separate confirmation</span></label>
         <label class="switch"><input id="debugLogs" type="checkbox"><span>Enable debug logs</span></label>
       </div>
-      <p class="notice-copy">Default reports include versions, settings summary, candidate evidence with URLs redacted, queue timeline, and error categories. Raw URLs, request headers, cookies, tokens, and screenshots are excluded by default.</p>
+      <p class="notice-copy">Default reports omit titles and filenames, hash hostname/path correlation values, and exclude query names, query values, local paths, blob identifiers, secret-shaped fields, and screenshots. Sensitive URL mode can include exact titles, hostnames, filenames, paths, and non-secret query values; URL credentials and secret-shaped values remain redacted.</p>
       <div class="data-inventory">
         <div><strong>Settings</strong><span>chrome.storage.local</span></div>
         <div><strong>Queue history</strong><span>privacy-safe metadata</span></div>

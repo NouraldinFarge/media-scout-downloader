@@ -1,0 +1,19 @@
+[
+  {
+    "source": "dom-video",
+    "tagName": "video",
+    "rawUrl": "https://host-wxfefg/path-pkzk62?params=2",
+    "normalizedUrl": "https://host-wxfefg/path-pkzk62?params=2",
+    "mime": "video/mp4",
+    "acceptedByBasicScanner": true,
+    "reasons": [],
+    "urlSummary": {
+      "protocol": "https",
+      "hostnameHash": "wxfefg",
+      "pathnameExtension": "mp4",
+      "pathHash": "pkzk62",
+      "queryParameterCount": 2,
+      "urlHash": "ufguyj"
+    }
+  }
+]

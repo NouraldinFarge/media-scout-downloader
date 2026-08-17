@@ -1,6 +1,6 @@
 # Media Scout release test plan
 
-Use this plan for version 3.7.12. Record the Chrome/Brave version, operating system, extension commit, fixture source, results, console errors, and reviewer. Do not publish while a critical or high-severity item is unresolved.
+Use this plan for version 3.7.13. Record the Chrome/Brave version, operating system, extension commit, fixture source, results, console errors, and reviewer. Do not publish while a critical or high-severity item is unresolved.
 
 ## 1. Automated gate
 
@@ -102,12 +102,13 @@ Pass criteria: filtering does not mark Settings dirty; values normalize or rejec
 
 ## 9. Reports and privacy
 
-1. Generate a default report and inspect every ZIP entry.
-2. Repeat with full URLs enabled after confirmation.
+1. Generate a default report, read the field-by-field exposure table, open every disclosure, search the literal preview text, and inspect every ZIP entry.
+2. Repeat with sensitive URL mode enabled in Settings and accepted through the separate per-report confirmation.
 3. Use URLs containing credentials, query tokens, sensitive query-parameter names, fragments, Unicode, embedded URLs in error text, relative secret URLs, blob identifiers, and traversal-shaped filenames.
-4. Inspect local storage before and after queue restart and cleanup actions.
+4. After preview generation, separately change the source page, candidate list, queue/history, settings, permissions, diagnostics, and sensitivity option; confirm each change disables export until a new preview is reviewed.
+5. Inspect local storage before and after queue restart and cleanup actions.
 
-Pass criteria: default reports omit full URLs, query names/values, blob identifiers, headers, cookies, tokens, and screenshots while retaining only hostname/path-hash/query-count summaries; ZIP paths cannot escape the archive root; opt-in content matches the preview; cleanup actions remove only their named data. Page titles, hostnames, and filenames remain review-required context.
+Pass criteria: default reports omit titles and filenames; replace hostnames/paths with correlation hashes; omit query names/values; and redact blob identifiers, credentials, local paths, secret-shaped data, headers, cookies, and tokens. Screenshots remain absent in every mode. Sensitive mode exposes only the values named by its exact exposure table and continues to redact credentials, local paths, blob identifiers, and secret-shaped data. Preview content is rendered as literal text. Every ZIP path/content byte sequence matches the reviewed normalized file set, traversal cannot escape the archive root, stale inputs block export, and cleanup actions remove only their named data.
 
 ## 10. Accessibility and responsive UI
 

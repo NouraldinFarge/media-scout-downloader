@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Media Scout Downloader",
   "description": "Find and safely download browser-visible media with local-first scanning, clear limits, and optional per-site access.",
-  "version": "3.7.12",
+  "version": "3.7.13",
   "minimum_chrome_version": "114",
   "action": {
     "default_title": "Media Scout Downloader",

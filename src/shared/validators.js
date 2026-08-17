@@ -108,6 +108,11 @@ export function validateMessage(message) {
       return Boolean(message.settings) && isSafeSettingsPayload(message.settings);
     case MESSAGE_TYPES.GENERATE_REPORT:
       return message.includeSensitiveUrls == null || typeof message.includeSensitiveUrls === 'boolean';
+    case MESSAGE_TYPES.VALIDATE_REPORT_PREVIEW:
+      return isNonEmptyString(message.previewToken, 160)
+        && isNonEmptyString(message.previewDigest, 160)
+        && isNonEmptyString(message.generatedAt, 50)
+        && isSafeReportContext(message.context);
     case MESSAGE_TYPES.REQUEST_SITE_ACCESS:
       return message.origin == null || (isNonEmptyString(message.origin, 2048) && /^https?:\/\//i.test(message.origin));
     case MESSAGE_TYPES.START_EPISODE_BATCH_DOWNLOADS:
@@ -136,6 +141,25 @@ function isNonEmptyString(value, maxLength = 512) {
 
 function isOptionalBoundedString(value, maxLength) {
   return value == null || value === '' || (typeof value === 'string' && value.length <= maxLength);
+}
+
+function isSafeReportContext(context = {}) {
+  if (!context || typeof context !== 'object' || Array.isArray(context)) return false;
+  const requiredSignatures = [
+    'sourceSignature',
+    'candidateSignature',
+    'queueSignature',
+    'queueHistorySignature',
+    'settingsSignature',
+    'permissionSignature',
+    'diagnosticsSignature',
+    'scanSignature'
+  ];
+  const allowed = new Set(['schemaVersion', 'tabId', 'tabRevision', 'sensitivity', ...requiredSignatures]);
+  if (Object.keys(context).some((key) => !allowed.has(key))) return false;
+  if (context.schemaVersion !== 1 || !isPositiveInteger(context.tabId) || !isPositiveInteger(context.tabRevision)) return false;
+  if (!['redacted', 'sensitive-urls'].includes(context.sensitivity)) return false;
+  return requiredSignatures.every((key) => isNonEmptyString(context[key], 160));
 }
 
 function isSafeProgressMessage(message = {}) {

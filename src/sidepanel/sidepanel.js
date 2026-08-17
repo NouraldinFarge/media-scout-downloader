@@ -1,6 +1,7 @@
-import { DOWNLOAD_STATUSES, HLS_OUTPUT_METHODS, MESSAGE_TYPES, MEDIA_TYPES } from '../shared/constants.js';
+import { DOWNLOAD_STATUSES, HLS_OUTPUT_METHODS, MESSAGE_TYPES, MEDIA_TYPES, STORAGE_KEYS } from '../shared/constants.js';
 import { formatBytes, getHostname } from '../shared/utils.js';
-import { createZipBlob } from '../shared/zip-utils.js';
+import { reportFileByteLength, reportFilesDigest } from '../shared/report-privacy.js';
+import { createZipBlob, normalizeZipEntries } from '../shared/zip-utils.js';
 import {
   HLS_ACTIONS,
   buildPopupModel,
@@ -39,6 +40,8 @@ const state = {
   filter: '',
   capabilityFilter: 'all',
   report: null,
+  reportInvalidationReason: '',
+  reportSearch: '',
   reportIncludeSensitive: false,
   reportIncludeSensitiveTouched: false,
   manualUrl: '',
@@ -71,11 +74,13 @@ async function initialize() {
 chrome.runtime.onMessage.addListener((message) => {
   if (!message || typeof message !== 'object') return;
   if (message.type === MESSAGE_TYPES.QUEUE_UPDATED) {
+    invalidateReportPreview('The download queue changed after the preview was built.');
     state.queue = normalizeQueue(message.state || state.queue);
     scheduleRender();
   }
   if (message.type === MESSAGE_TYPES.ACTIVE_TAB_STATE) {
     if (!Number.isInteger(state.tab?.id) || !Number.isInteger(message.tabId) || message.tabId === state.tab.id) {
+      invalidateReportPreview(message.navigationReset ? 'The source page changed after the preview was built.' : 'Detected page evidence changed after the preview was built.');
       if (message.navigationReset || message.cacheCleared) resetDetectedState();
       else if (message.replaceMediaItems && Array.isArray(message.mediaItems)) state.mediaItems = message.mediaItems;
       else if (Array.isArray(message.mediaItems)) mergeMediaItems(message.mediaItems);
@@ -87,6 +92,10 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 chrome.storage?.onChanged?.addListener?.((changes, areaName) => {
+  if (areaName === 'local' && [STORAGE_KEYS.SETTINGS, STORAGE_KEYS.DIAGNOSTICS, STORAGE_KEYS.QUEUE_SUMMARY, STORAGE_KEYS.QUEUE_HISTORY].some((key) => changes[key])) {
+    invalidateReportPreview('Local settings, diagnostics, or retained queue evidence changed after the preview was built.');
+    scheduleRender();
+  }
   if (areaName !== 'session' || !changes[SIDE_PANEL_ROUTE_KEY]?.newValue) return;
   const changed = applyLaunchIntent(changes[SIDE_PANEL_ROUTE_KEY].newValue);
   // Route intent is a one-shot handoff. Remove it even when this panel was
@@ -132,6 +141,7 @@ async function sendMessage(message) {
 }
 
 function applyState(response = {}) {
+  invalidateReportPreview('Workspace evidence was refreshed after the preview was built.');
   state.tab = response.tab || state.tab || null;
   if (Number.isInteger(response.tab?.id) && !isExtensionPageUrl(response.tab?.url || '')) state.sourceTabId = response.tab.id;
   state.mediaItems = Array.isArray(response.mediaItems) ? response.mediaItems : state.mediaItems;
@@ -160,8 +170,16 @@ function mergeMediaItems(items = []) {
 function resetDetectedState() {
   state.mediaItems = [];
   state.episodeBatch = null;
-  state.report = null;
+  invalidateReportPreview('Detected evidence was cleared after the preview was built.');
   state.rawReveals.clear();
+}
+
+function invalidateReportPreview(reason = 'Report inputs changed after the preview was built.') {
+  if (!state.report) return false;
+  state.report = null;
+  state.reportSearch = '';
+  state.reportInvalidationReason = reason;
+  return true;
 }
 
 function scheduleRender() {
@@ -526,17 +544,18 @@ function renderReports(root) {
   root.replaceChildren(
     el('section', { className: 'card' }, [
       heading('Report preview', 'Every export is local, reviewable, and redacted by default.'),
+      el('p', { className: 'notice warning', text: 'Page titles, hostnames, filenames, and URLs can identify private activity. Build the preview, inspect the exposure table and literal contents, then export only if the bundle is appropriate to share.' }),
       el('ul', { className: 'checklist' }, [
-        checklistItem('Included', 'Extension/browser version, manifest permissions, platform summary.'),
-        checklistItem('Included', 'Settings summary with sensitive values redacted.'),
-        checklistItem('Included', 'Candidate evidence with URLs redacted.'),
-        checklistItem('Excluded by default', 'Raw URLs, request headers, cookies, tokens, screenshots.'),
-        checklistItem('Opt-in only', 'Full URLs, after explicit confirmation.')
+        checklistItem('Default', 'Titles and filenames omitted; hostnames and URL paths replaced by correlation hashes; query names and values omitted.'),
+        checklistItem('Always redacted', 'URL credentials, local paths, blob identifiers, and secret-shaped fields or query parameters.'),
+        checklistItem('Included', 'Candidate/queue evidence, diagnostics, permissions, extension/browser/platform details, and retention notes.'),
+        checklistItem('Never included', 'Screenshots.'),
+        checklistItem('Sensitive URL mode', 'Exact titles, hostnames, filenames, URL paths, and non-secret query values after a separate confirmation.')
       ]),
-      checkbox('includeSensitive', state.reportIncludeSensitive, 'Include full active-tab/media URLs after confirmation', (checked) => {
+      checkbox('includeSensitive', state.reportIncludeSensitive, 'Use sensitive URL mode after confirmation', (checked) => {
         state.reportIncludeSensitiveTouched = true;
         state.reportIncludeSensitive = checked;
-        state.report = null;
+        invalidateReportPreview('The report sensitivity option changed after the preview was built.');
         scheduleRender();
       }),
       el('div', { className: 'action-row' }, [
@@ -544,7 +563,7 @@ function renderReports(root) {
         button('Export ZIP', 'ghost', exportReport, !report?.files?.length)
       ])
     ]),
-    report ? reportPreview(report) : emptyNotice('Build a preview before exporting. Export stays disabled until the redaction checklist and file list are visible.')
+    report ? reportPreview(report) : emptyNotice(state.reportInvalidationReason || 'Build a preview before exporting. Export stays disabled until the exposure table and literal file contents are available for review.')
   );
 }
 
@@ -554,13 +573,71 @@ function checklistItem(label, text) {
 
 function reportPreview(report = {}) {
   const summary = report.summary || {};
+  const files = report.files || [];
+  const query = String(state.reportSearch || '').trim().toLowerCase();
+  const matchingFiles = query
+    ? files.filter((file) => `${file.path || ''}\n${String(file.content ?? '')}`.toLowerCase().includes(query))
+    : files;
   return el('section', { className: 'card' }, [
-    heading('Preview ready', `${summary.redacted ? 'Redacted' : 'Full'} report • ${summary.detectedMediaCount ?? 0} candidate(s) • ${summary.decisionCount ?? 0} decision(s).`),
-    el('ul', { className: 'report-file-list' }, (report.files || []).map((file) => el('li', {}, [
-      el('strong', { text: file.path || file.name || 'report-file' }),
-      el('p', { text: `${formatBytes(new Blob([String(file.content || '')]).size)} • text/plain` })
-    ])))
+    heading('Preview ready', `${summary.redacted ? 'Default redacted' : 'Sensitive URL'} report • ${summary.fileCount ?? files.length} files • ${formatBytes(summary.totalBytes ?? files.reduce((sum, file) => sum + reportFileByteLength(file.content), 0))}.`),
+    chipRow([
+      [summary.redacted ? 'Redacted' : 'Sensitive URLs', summary.redacted ? 'success' : 'warning'],
+      [`${summary.detectedMediaCount ?? 0} candidates`, 'info'],
+      [`${summary.decisionCount ?? 0} decisions`, 'info'],
+      ['No screenshots', 'success']
+    ]),
+    exposureTable(report.exposure || []),
+    el('div', { className: 'report-retention notice' }, [
+      el('strong', { text: 'Retention and cleanup' }),
+      el('p', { text: 'This preview remains only in this open extension page and is invalidated when report inputs change. Media Scout does not retain an exported ZIP; after download, delete the file manually when it is no longer needed. Queue history follows the configured local retention period and can be cleared from Diagnostics.' })
+    ]),
+    el('label', { className: 'report-search-label' }, [
+      el('span', { text: 'Search preview contents' }),
+      input('search', state.reportSearch, 'Search filenames and exact text…', (value) => {
+        state.reportSearch = value;
+        scheduleRender();
+      }, 'report-search')
+    ]),
+    el('p', { className: 'report-match-count', text: query ? `${matchingFiles.length} of ${files.length} files match. Clear the search to inspect every file.` : `${files.length} files. Text below is selectable and is rendered as literal text, never as HTML.` }),
+    matchingFiles.length
+      ? el('div', { className: 'report-file-list' }, matchingFiles.map((file, index) => reportFileDisclosure(file, index, Boolean(query))))
+      : el('p', { className: 'notice warning', text: 'No preview file contains that search text.' })
   ]);
+}
+
+function exposureTable(exposure = []) {
+  return el('div', { className: 'report-exposure-wrap' }, [
+    el('h3', { text: 'Data exposure for this exact preview' }),
+    el('table', { className: 'report-exposure' }, [
+      el('thead', {}, [el('tr', {}, [el('th', { attrs: { scope: 'col' }, text: 'Field' }), el('th', { attrs: { scope: 'col' }, text: 'Handling' }), el('th', { attrs: { scope: 'col' }, text: 'What that means' })])]),
+      el('tbody', {}, exposure.map((item) => el('tr', {}, [
+        el('th', { attrs: { scope: 'row' }, text: item.label || item.id || 'Field' }),
+        el('td', {}, [el('span', { className: `badge ${exposureTone(item.handling)}`, text: exposureHandlingLabel(item.handling) })]),
+        el('td', { text: item.detail || '' })
+      ])))
+    ])
+  ]);
+}
+
+function reportFileDisclosure(file = {}, index = 0, searchActive = false) {
+  const path = file.path || file.name || `report-file-${index + 1}.txt`;
+  return el('details', { className: 'report-file', attrs: { open: searchActive || index === 0 } }, [
+    el('summary', {}, [
+      el('strong', { text: path }),
+      el('span', { className: 'badge info', text: `${formatBytes(reportFileByteLength(file.content))} • literal text` })
+    ]),
+    el('pre', { className: 'report-file-content', text: String(file.content ?? ''), attrs: { tabindex: '0', 'aria-label': `${path} preview content` } })
+  ]);
+}
+
+function exposureHandlingLabel(handling = '') {
+  return String(handling || 'unknown').replace(/-/g, ' ');
+}
+
+function exposureTone(handling = '') {
+  if (['omitted', 'redacted', 'hashed'].includes(handling)) return 'success';
+  if (String(handling).includes('sensitive') || handling === 'included') return 'warning';
+  return 'info';
 }
 
 function renderDiagnostics(root) {
@@ -754,21 +831,49 @@ function clearManualHls() {
 }
 
 async function buildReportPreview() {
-  if (state.reportIncludeSensitive && !confirm('Include full URLs in this report preview/export? Full URLs may contain signatures or tokens.')) {
+  if (state.reportIncludeSensitive && !confirm('Build a sensitive URL report? Exact page titles, hostnames, filenames, URL paths, and non-secret query values may appear. URL credentials and secret-shaped fields remain redacted.')) {
     state.reportIncludeSensitive = false;
   }
   setStatus('Building local report preview…');
   const response = await sendMessage({ type: MESSAGE_TYPES.GENERATE_REPORT, includeSensitiveUrls: Boolean(state.reportIncludeSensitive) });
   if (!response.report?.files?.length) throw new Error('Report generation returned no files.');
   state.report = response.report;
-  setStatus(`${response.report.summary?.redacted ? 'Redacted' : 'Full'} preview ready. Review before exporting.`);
+  state.reportSearch = '';
+  state.reportInvalidationReason = '';
+  state.reportIncludeSensitive = response.report.summary?.mode === 'sensitive-urls';
+  setStatus(`${response.report.summary?.redacted ? 'Default redacted' : 'Sensitive URL'} preview ready. Inspect the exposure table and literal contents before exporting.`);
   scheduleRender();
 }
 
 async function exportReport() {
   if (!state.report?.files?.length) return setStatus('Build a report preview first.');
-  const blob = createZipBlob(state.report.files);
-  await saveBlob(blob, state.report.filename || 'media-scout-report.zip');
+  const preview = state.report;
+  const files = normalizeZipEntries(preview.files);
+  const currentDigest = reportFilesDigest(files);
+  if (!preview.previewDigest || currentDigest !== preview.previewDigest) {
+    invalidateReportPreview('The previewed file set changed before export. Build and review a new preview.');
+    scheduleRender();
+    return setStatus('Export blocked because the preview no longer matches the file set.');
+  }
+  const validation = await sendMessage({
+    type: MESSAGE_TYPES.VALIDATE_REPORT_PREVIEW,
+    context: preview.context,
+    previewDigest: currentDigest,
+    previewToken: preview.previewToken,
+    generatedAt: preview.generatedAt
+  });
+  if (!validation.valid) {
+    invalidateReportPreview(validation.reason || 'Report inputs changed after the preview was built.');
+    scheduleRender();
+    return setStatus(validation.reason || 'Export blocked. Build and review a fresh preview.');
+  }
+  if (state.report !== preview || reportFilesDigest(normalizeZipEntries(preview.files)) !== currentDigest) {
+    invalidateReportPreview('Report inputs changed during export validation. Build and review a fresh preview.');
+    scheduleRender();
+    return setStatus('Export blocked because the preview changed during validation.');
+  }
+  const blob = createZipBlob(files);
+  await saveBlob(blob, preview.filename || 'media-scout-redacted-report.zip');
   setStatus('Report ZIP export requested through the browser downloads UI.');
 }
 
@@ -798,6 +903,9 @@ async function action(type, successText) {
   const response = await sendMessage({ type });
   setStatus(response?.ok === false ? response.error || 'Action failed.' : successText);
   if (type === MESSAGE_TYPES.RESET_DIAGNOSTICS && response.diagnostics) state.diagnostics = response.diagnostics;
+  if ([MESSAGE_TYPES.CLEAR_DETECTED_CACHE, MESSAGE_TYPES.CLEAR_QUEUE_HISTORY, MESSAGE_TYPES.RESET_DIAGNOSTICS].includes(type)) {
+    invalidateReportPreview('Local report evidence was cleared or reset after the preview was built.');
+  }
   scheduleRender();
 }
 

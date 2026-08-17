@@ -1,5 +1,6 @@
 import { HLS_OUTPUT_METHODS, MEDIA_TYPES, MESSAGE_TYPES } from '../shared/constants.js';
 import { getHostname } from '../shared/utils.js';
+import { warn } from '../shared/logger.js';
 import {
   buildPopupModel,
   classifyCandidate,
@@ -321,7 +322,7 @@ async function openRoute(route = 'home') {
       return;
     }
   } catch (error) {
-    console.warn('Side panel open fell back to extension tab:', error?.message || error);
+    warn('Side panel open fell back to extension tab', error?.message || error);
   }
 
   try {

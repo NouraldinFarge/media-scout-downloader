@@ -6,12 +6,13 @@ const crcTable = buildCrcTable();
  * This avoids external libraries/CDNs and keeps report generation local.
  */
 export function createZipBlob(files = []) {
+  const entries = normalizeZipEntries(files);
   const localParts = [];
   const centralParts = [];
   let offset = 0;
 
-  for (const file of files) {
-    const name = sanitizeZipPath(file.path || 'report.txt');
+  for (const file of entries) {
+    const name = file.path;
     const nameBytes = textEncoder.encode(name);
     const dataBytes = toBytes(file.content ?? '');
     const crc = crc32(dataBytes);
@@ -64,13 +65,29 @@ export function createZipBlob(files = []) {
   writeUint32(endView, 0, 0x06054b50);
   writeUint16(endView, 4, 0);
   writeUint16(endView, 6, 0);
-  writeUint16(endView, 8, files.length);
-  writeUint16(endView, 10, files.length);
+  writeUint16(endView, 8, entries.length);
+  writeUint16(endView, 10, entries.length);
   writeUint32(endView, 12, centralSize);
   writeUint32(endView, 16, offset);
   writeUint16(endView, 20, 0);
 
   return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+}
+
+export function normalizeZipEntries(files = []) {
+  const used = new Set();
+  return (Array.isArray(files) ? files : []).slice(0, 256).map((file, index) => {
+    const fallback = `report-${index + 1}.txt`;
+    const originalPath = file?.path || file?.name || fallback;
+    let path = sanitizeZipPath(originalPath, fallback);
+    let suffix = 2;
+    while (used.has(path.toLowerCase())) {
+      path = addPathSuffix(sanitizeZipPath(originalPath, fallback), suffix);
+      suffix += 1;
+    }
+    used.add(path.toLowerCase());
+    return { path, content: file?.content ?? '' };
+  });
 }
 
 function toBytes(content) {
@@ -79,14 +96,35 @@ function toBytes(content) {
   return textEncoder.encode(String(content));
 }
 
-function sanitizeZipPath(path) {
+export function sanitizeZipPath(path, fallback = 'report.txt') {
   const segments = String(path || '')
     .replace(/\\/g, '/')
     .split('/')
-    .filter((segment) => segment && segment !== '.' && segment !== '..')
-    .map((segment) => segment.replace(/[\u0000-\u001f\u007f]+/g, '').trim())
-    .filter(Boolean);
-  return segments.join('/').slice(0, 180) || 'report.txt';
+    .map(sanitizeZipSegment)
+    .filter((segment) => segment && segment !== '.' && segment !== '..');
+  const safeFallback = sanitizeZipSegment(fallback) || 'report.txt';
+  return segments.join('/').slice(0, 180) || safeFallback;
+}
+
+function sanitizeZipSegment(segment) {
+  let value = String(segment || '')
+    .replace(/[\u0000-\u001f\u007f<>:"|?*]+/g, '-')
+    .trim()
+    .replace(/[. ]+$/g, '');
+  if (/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(value)) value = `_${value}`;
+  return value;
+}
+
+function addPathSuffix(path, suffix) {
+  const slash = path.lastIndexOf('/');
+  const directory = slash >= 0 ? path.slice(0, slash + 1) : '';
+  const name = slash >= 0 ? path.slice(slash + 1) : path;
+  const dot = name.lastIndexOf('.');
+  const extension = dot > 0 ? name.slice(dot) : '';
+  const stem = `${directory}${dot > 0 ? name.slice(0, dot) : name}`;
+  const marker = `-${suffix}`;
+  const maxStemLength = Math.max(1, 180 - marker.length - extension.length);
+  return `${stem.slice(0, maxStemLength)}${marker}${extension}`;
 }
 
 function dosDateTime(date) {

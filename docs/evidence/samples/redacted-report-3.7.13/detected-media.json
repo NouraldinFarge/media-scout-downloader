@@ -1,0 +1,26 @@
+[
+  {
+    "id": "controlled-media-101",
+    "tabId": 101,
+    "title": "[title omitted by default]",
+    "hostname": "host-wxfefg",
+    "filename": "[filename omitted by default]",
+    "url": "https://host-wxfefg/path-pkzk62?params=2",
+    "normalizedUrl": "https://host-wxfefg/path-pkzk62?params=2",
+    "mediaType": "video",
+    "extension": "mp4",
+    "status": "detected",
+    "detectionMethods": [
+      "controlled-fixture"
+    ],
+    "note": "Synthetic fixture note: Καλημέρα κόσμε.",
+    "urlSummary": {
+      "protocol": "https",
+      "hostnameHash": "wxfefg",
+      "pathnameExtension": "mp4",
+      "pathHash": "pkzk62",
+      "queryParameterCount": 2,
+      "urlHash": "ufguyj"
+    }
+  }
+]

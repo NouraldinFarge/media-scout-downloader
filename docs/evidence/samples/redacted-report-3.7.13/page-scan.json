@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-08-17T17:00:00.000Z",
+  "frame": {
+    "url": "https://host-sennqh/path-i42jla?params=2",
+    "title": "[title omitted by default]",
+    "isTop": true
+  },
+  "document": {
+    "url": "https://host-sennqh/path-i42jla?params=2",
+    "title": "[title omitted by default]",
+    "iframeCount": 0,
+    "mediaElementCount": 1
+  },
+  "mediaElements": [
+    {
+      "index": 0,
+      "tagName": "video",
+      "currentSrc": "https://host-wxfefg/path-pkzk62?params=2",
+      "frameUrl": "https://host-sennqh/path-i42jla?params=2",
+      "resolution": "1280×720"
+    }
+  ],
+  "iframes": [],
+  "literalMediaHints": [],
+  "playlistProbes": [],
+  "decisions": [
+    {
+      "source": "dom-video",
+      "tagName": "video",
+      "rawUrl": "https://host-wxfefg/path-pkzk62?params=2",
+      "normalizedUrl": "https://host-wxfefg/path-pkzk62?params=2",
+      "mime": "video/mp4",
+      "acceptedByBasicScanner": true,
+      "reasons": []
+    }
+  ],
+  "performance": {
+    "totalResourceEntries": 1,
+    "inspectedResourceEntries": 1,
+    "mediaLikeEntries": [
+      {
+        "url": "https://host-wxfefg/path-pkzk62?params=2",
+        "hostname": "host-wxfefg",
+        "extension": "mp4",
+        "initiatorType": "video"
+      }
+    ],
+    "interestingEntries": []
+  }
+}

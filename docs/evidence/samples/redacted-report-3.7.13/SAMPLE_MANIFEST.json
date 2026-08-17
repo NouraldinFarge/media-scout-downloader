@@ -1,0 +1,58 @@
+{
+  "sampleType": "sanitized-default-redacted-report",
+  "product": "Media Scout Downloader",
+  "version": "3.7.13",
+  "generatedAt": "2026-08-17T17:00:00.000Z",
+  "source": "Repository-owned synthetic .invalid-domain fixture; no real media, account, page, URL, token, filename, or local path.",
+  "browserEvidence": false,
+  "mode": "redacted",
+  "previewDigest": "report-9-32323-ajkes7",
+  "screenshotsIncluded": false,
+  "files": [
+    {
+      "path": "README.txt",
+      "bytes": 1846,
+      "sha256": "4eb76427dba8f046890bddd29a97184fb778dc222b727000fc9c241f1634b955"
+    },
+    {
+      "path": "data-exposure.json",
+      "bytes": 2682,
+      "sha256": "edc038135b3daa72b0c3a84c3a4390b84cba117cc8588722526c344f550fcd4e"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 2383,
+      "sha256": "93d3c9f3941ef6926d0a640c492a2a295a9b335a14874c8dc065e6599e835223"
+    },
+    {
+      "path": "detected-media.json",
+      "bytes": 716,
+      "sha256": "bc88b2535cf1bdb9a6695489c1eba54e9c846fd2617adf3ad0215036ab3a3eab"
+    },
+    {
+      "path": "page-scan.json",
+      "bytes": 1282,
+      "sha256": "c82d57b28a6ecda955b558e5590566334cbfeb11c9d4ff36939e82834e6331e7"
+    },
+    {
+      "path": "decision-log.json",
+      "bytes": 471,
+      "sha256": "71db5e615b415eb83295fa6891a826695e28ec73803b50ce8f9409cae0abebc4"
+    },
+    {
+      "path": "extension-state.json",
+      "bytes": 4897,
+      "sha256": "79ba28c977737e7477ac642eaffa7bcc61c52593a819a7810d0a77797fcf750e"
+    },
+    {
+      "path": "limitations.txt",
+      "bytes": 1746,
+      "sha256": "84f19ecd5df08009cddc5121daf715f58e90dd2e73c566f77cea0510fdb861e3"
+    },
+    {
+      "path": "media-type-registry.json",
+      "bytes": 16300,
+      "sha256": "c1fa51e369ac153076955cb1d75cd8d66f10799f7be13ce7dfadb082ee55fe86"
+    }
+  ]
+}

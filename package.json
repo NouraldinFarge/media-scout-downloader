@@ -1,7 +1,7 @@
 {
   "name": "media-scout-downloader",
   "private": true,
-  "version": "3.7.12",
+  "version": "3.7.13",
   "type": "module",
   "scripts": {
     "format": "node test-harness/format-files.mjs",
@@ -9,6 +9,8 @@
     "lint": "node test-harness/static-checks.mjs lint",
     "typecheck": "node test-harness/static-checks.mjs syntax",
     "test": "node test-harness/run-tests.mjs",
+    "evidence:report-sample": "node test-harness/generate-sanitized-report-sample.mjs",
+    "evidence:provenance": "node test-harness/generate-source-inventory.mjs",
     "build": "node test-harness/build-extension.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
   },

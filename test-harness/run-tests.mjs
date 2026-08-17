@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runSelfTests } from '../src/shared/self-tests.js';
-import { createZipBlob } from '../src/shared/zip-utils.js';
-import { redactReportValue } from '../src/background/report-manager.js';
+import { createZipBlob, normalizeZipEntries } from '../src/shared/zip-utils.js';
+import { ReportManager, redactReportValue } from '../src/background/report-manager.js';
 import { QueueManager } from '../src/background/queue-manager.js';
 import { MAX_MEDIA_ITEMS_PER_TAB, TabMediaStore } from '../src/background/tab-media-store.js';
 import { classifyChromeDownloadError, downloadWithAllowedStrategies } from '../src/background/download-strategies.js';
@@ -11,6 +11,8 @@ import { MediaDetector, parseHlsInspection } from '../src/background/media-detec
 import { DiagnosticsManager } from '../src/background/diagnostics-manager.js';
 import { DOWNLOAD_STATUSES, ERROR_CATEGORIES, MEDIA_TYPES, MESSAGE_TYPES, STORAGE_KEYS } from '../src/shared/constants.js';
 import { buildExtensionState, summarizeUrl } from '../src/shared/report-utils.js';
+import { buildReportContext, reportContextsMatch, reportFilesDigest } from '../src/shared/report-privacy.js';
+import { sanitizeLogValue } from '../src/shared/logger.js';
 import { validateMediaUrl, validateMessage } from '../src/shared/validators.js';
 
 const results = runSelfTests();
@@ -60,7 +62,14 @@ assert.equal(redactedReport.includes('camel-case-secret'), false, 'report redact
 const summarizedUrl = summarizeUrl('https://example.com/private/path?account_email=user%40example.com&token=secret');
 assert.equal(summarizedUrl.queryParameterCount, 2, 'redacted URL summaries retain only the number of query parameters');
 assert.equal(JSON.stringify(summarizedUrl).includes('account_email'), false, 'redacted URL summaries do not retain query-parameter names');
-assert.equal(buildExtensionState({}).schemaVersion, 6, 'report schema advances when the redacted URL-summary shape changes');
+assert.equal(buildExtensionState({}).schemaVersion, 7, 'report schema advances when the privacy-preview contract changes');
+const sanitizedLog = JSON.stringify(sanitizeLogValue({ message: 'Failed https://private.invalid/watch?token=LOG_SECRET', localPath: 'C:\\Users\\Private\\file.mp4', password: 'LOG_PASSWORD' }));
+assert.equal(sanitizedLog.includes('LOG_SECRET'), false, 'warning/debug logging redacts URL query values');
+assert.equal(sanitizedLog.includes('LOG_PASSWORD'), false, 'warning/debug logging redacts secret-shaped fields');
+assert.equal(sanitizedLog.includes('C:\\Users\\Private'), false, 'warning/debug logging redacts local paths');
+
+await testReportPrivacyAndPreviewEquality();
+testReportContextInvalidation();
 
 assert.equal(validateMessage({ type: MESSAGE_TYPES.DOWNLOAD_PROGRESS, taskId: 'task-1', percent: 12, loaded: -1, total: 5 }), false, 'progress messages reject negative counters');
 assert.equal(validateMessage({ type: MESSAGE_TYPES.DOM_MEDIA_FOUND, items: [{ url: 'https://example.com/video.mp4', transferSize: -1 }] }), false, 'scan messages reject negative resource metrics');
@@ -88,6 +97,11 @@ assert.equal(popupSource.includes('message.replaceMediaItems'), true, 'popup acc
 const sidepanelSource = await readFile(new URL('../src/sidepanel/sidepanel.js', import.meta.url), 'utf8');
 assert.equal(sidepanelSource.includes('message.navigationReset || message.cacheCleared'), true, 'side-panel live state clears candidates after navigation or cache reset');
 assert.equal(sidepanelSource.includes('message.replaceMediaItems'), true, 'side panel accepts bounded full-state replacement broadcasts');
+assert.equal(sidepanelSource.includes("text: String(file.content ?? '')"), true, 'report preview renders each exact text-file content through textContent-safe element construction');
+assert.equal(sidepanelSource.includes('MESSAGE_TYPES.VALIDATE_REPORT_PREVIEW'), true, 'report export validates the preview against current source evidence');
+assert.equal(sidepanelSource.includes('reportFilesDigest(files)'), true, 'report export recomputes the exact preview/file-set digest');
+assert.equal(sidepanelSource.includes('invalidateReportPreview'), true, 'side-panel report inputs share an explicit preview-invalidation path');
+assert.equal(sidepanelSource.includes('Screenshots.'), true, 'report UI explicitly states that screenshots are never included');
 const contentSource = await readFile(new URL('../src/content/content.js', import.meta.url), 'utf8');
 assert.equal(contentSource.includes('queryParameterNames'), false, 'runtime HLS errors do not retain sensitive query-parameter names');
 const serviceWorkerSource = await readFile(new URL('../src/background/service-worker.js', import.meta.url), 'utf8');
@@ -97,6 +111,193 @@ assert.equal(pageScannerSource.includes('querySelectorAll'), false, 'page scanni
 assert.equal(serviceWorkerSource.includes('querySelectorAll'), false, 'injected fallback and episode scans use visit-bounded DOM traversal');
 
 console.log(`Media Scout regression gate: ${results.results.length} self-test suites and repository assertions passed.`);
+
+async function testReportPrivacyAndPreviewEquality() {
+  installChromeStorageStub();
+  let sensitiveSettingAllowed = false;
+  const tab = {
+    id: 42,
+    title: 'Fixture Δ Private Watch',
+    url: 'https://media.fixture.invalid/watch/private-title?quality=ultra&viewer=sample&token=DO_NOT_EXPORT_TOKEN'
+  };
+  const mediaUrl = 'https://fixture-user:fixture-pass@cdn.fixture.invalid/private/fixture-video-秘密.mp4?quality=1080p&token=MEDIA_SECRET_TOKEN&opaque=abcdefghijklmnopqrstuvwxyz0123456789ABCD';
+  const queue = {
+    maxParallel: 1,
+    activeCount: 0,
+    paused: false,
+    pending: [],
+    active: [],
+    completed: [{ id: 'done-1', filename: 'fixture-video-秘密.mp4', status: 'completed', result: { outputFilename: 'fixture-video-秘密.mp4' } }],
+    failed: [],
+    canceled: []
+  };
+  const tabState = {
+    tab,
+    mediaItems: [{
+      id: 'media-fixture',
+      tabId: tab.id,
+      title: tab.title,
+      hostname: 'cdn.fixture.invalid',
+      filename: 'fixture-video-秘密.mp4',
+      url: mediaUrl,
+      normalizedUrl: mediaUrl,
+      mediaType: MEDIA_TYPES.VIDEO,
+      extension: 'mp4',
+      status: DOWNLOAD_STATUSES.DETECTED,
+      note: 'Καλημέρα κόσμε — synthetic Unicode survives.',
+      localPath: 'C:\\Users\\Fixture\\Private\\fixture-video-秘密.mp4',
+      blobUrl: 'blob:https://media.fixture.invalid/PRIVATE-BLOB-ID',
+      accessToken: 'OBJECT_SECRET_TOKEN'
+    }]
+  };
+  const detailedScan = {
+    generatedAt: '2026-08-17T12:00:00.000Z',
+    frame: { url: tab.url, title: tab.title, isTop: true },
+    document: { url: tab.url, title: tab.title, iframeCount: 0, mediaElementCount: 1 },
+    mediaElements: [{ tagName: 'video', currentSrc: mediaUrl, frameUrl: tab.url, currentTime: 12 }],
+    literalMediaHints: [{ url: mediaUrl, source: 'fixture', context: 'Synthetic controlled fixture' }],
+    decisions: [{ rawUrl: mediaUrl, normalizedUrl: mediaUrl, source: 'dom-video', acceptedByBasicScanner: true, reasons: [] }],
+    playlistProbes: [],
+    performance: { mediaLikeEntries: [{ url: mediaUrl, hostname: 'cdn.fixture.invalid', initiatorType: 'video' }], interestingEntries: [] },
+    diagnosticMessage: 'Relative fetch /private/clip.mp4?account_email=user@fixture.invalid&token=RELATIVE_SECRET failed. Authorization: Bearer eyJfixtureHeader123.fixturePayload456.fixtureSignature789',
+    protocolRelativeMessage: 'Mirror //mirror.fixture.invalid/private/clip.mp4?quality=high was observed.',
+    localMessage: 'Temporary file C:\\Users\\Fixture\\AppData\\Local\\Temp\\fixture-video-秘密.mp4 was unavailable.'
+  };
+  const diagnostics = {
+    snapshot: () => ({
+      errors: { network: 1 },
+      lastMessage: `Credential URL ${mediaUrl}`,
+      password: 'DIAGNOSTIC_PASSWORD',
+      safeUnicode: 'Καλημέρα κόσμε'
+    })
+  };
+  const manager = new ReportManager({
+    getSettings: async () => ({
+      includeSensitiveUrlsInReports: sensitiveSettingAllowed,
+      queueHistoryRetentionDays: 7,
+      filenameTemplate: 'Personal-{tabTitle}.{extension}',
+      preferredSubfolder: 'Private Folder'
+    }),
+    diagnostics,
+    downloadManager: { getState: () => queue }
+  });
+  const build = (includeSensitiveUrls) => manager.buildActiveTabReport({
+    tab,
+    tabRevision: 3,
+    siteAccess: { granted: true, origin: 'https://media.fixture.invalid/*' },
+    tabState,
+    detailedScan,
+    scannerError: '',
+    selfTests: { passed: true },
+    includeSensitiveUrls
+  });
+
+  const settingBlocked = await build(true);
+  assert.equal(settingBlocked.summary.redacted, true, 'a request alone cannot enable sensitive report data while the saved setting is disabled');
+
+  sensitiveSettingAllowed = true;
+  const redacted = await build(false);
+  const redactedText = redacted.files.map((file) => String(file.content)).join('\n');
+  for (const privateValue of [
+    tab.title,
+    'media.fixture.invalid',
+    'cdn.fixture.invalid',
+    'fixture-video-秘密.mp4',
+    tab.url,
+    mediaUrl,
+    '/watch/private-title',
+    '/private/clip.mp4',
+    'quality',
+    'viewer',
+    'sample',
+    'account_email',
+    'user@fixture.invalid',
+    'DO_NOT_EXPORT_TOKEN',
+    'MEDIA_SECRET_TOKEN',
+    'abcdefghijklmnopqrstuvwxyz0123456789ABCD',
+    'RELATIVE_SECRET',
+    'OBJECT_SECRET_TOKEN',
+    'DIAGNOSTIC_PASSWORD',
+    'PRIVATE-BLOB-ID',
+    'C:\\Users\\Fixture'
+  ]) assert.equal(redactedText.includes(privateValue), false, `default report omits private fixture value: ${privateValue}`);
+  assert.equal(redactedText.includes('Καλημέρα κόσμε'), true, 'default report preserves safe Unicode diagnostic text');
+  assert.equal(redacted.summary.screenshotsIncluded, false, 'report summary explicitly excludes screenshots');
+  assert.equal(redacted.exposure.find((item) => item.id === 'page-title')?.handling, 'omitted', 'default exposure manifest identifies title omission');
+  assert.equal(redacted.exposure.find((item) => item.id === 'hostname')?.handling, 'hashed', 'default exposure manifest identifies hostname hashing');
+  assert.equal(redacted.files.some((file) => file.path === 'data-exposure.json'), true, 'the exported report includes its exact exposure manifest');
+  assert.equal(reportFilesDigest(redacted.files), redacted.previewDigest, 'preview digest covers the exact normalized file list and contents');
+
+  const sensitive = await build(true);
+  const sensitiveText = sensitive.files.map((file) => String(file.content)).join('\n');
+  for (const expected of [tab.title, 'media.fixture.invalid', 'cdn.fixture.invalid', 'mirror.fixture.invalid', 'fixture-video-秘密.mp4', '/watch/private-title', 'quality=ultra', 'viewer=sample', 'quality=1080p', '//mirror.fixture.invalid/private/clip.mp4?quality=high', 'Καλημέρα κόσμε']) {
+    assert.equal(sensitiveText.includes(expected), true, `confirmed sensitive report exposes the previewed non-secret fixture value: ${expected}`);
+  }
+  for (const alwaysPrivate of ['fixture-user', 'fixture-pass', 'DO_NOT_EXPORT_TOKEN', 'MEDIA_SECRET_TOKEN', 'abcdefghijklmnopqrstuvwxyz0123456789ABCD', 'fixtureHeader123', 'RELATIVE_SECRET', 'OBJECT_SECRET_TOKEN', 'DIAGNOSTIC_PASSWORD', 'PRIVATE-BLOB-ID', 'C:\\Users\\Fixture']) {
+    assert.equal(sensitiveText.includes(alwaysPrivate), false, `sensitive report still redacts credential, secret, blob, or local-path value: ${alwaysPrivate}`);
+  }
+  assert.equal(sensitive.summary.redacted, false, 'saved setting plus explicit request enables sensitive URL mode');
+  assert.equal(sensitive.exposure.find((item) => item.id === 'tokens-secrets')?.handling, 'redacted', 'sensitive exposure manifest truthfully describes always-redacted secret fields');
+
+  const unsafeFiles = [
+    { path: '../report.txt', content: 'first' },
+    { path: './report.txt', content: 'second' },
+    { path: '../../nested/../unicode-秘密.txt', content: 'Καλημέρα κόσμε' },
+    { path: 'safe/ .. /escape.txt', content: 'spaced traversal' },
+    { path: 'C:\\Users\\Fixture\\CON.txt', content: 'unsafe Windows path' }
+  ];
+  const normalizedFiles = normalizeZipEntries(unsafeFiles);
+  assert.deepEqual(normalizedFiles.map((file) => file.path), ['report.txt', 'report-2.txt', 'nested/unicode-秘密.txt', 'safe/escape.txt', 'C-/Users/Fixture/_CON.txt'], 'traversal-shaped, platform-unsafe, and duplicate ZIP paths normalize to unique safe names');
+  assert.equal(normalizedFiles.some((file) => file.path.split('/').some((segment) => segment === '..') || file.path.startsWith('/') || file.path.includes(':')), false, 'normalized ZIP paths contain no traversal, absolute roots, or drive prefixes');
+  const zip = createZipBlob(redacted.files);
+  const extracted = readStoredZipEntries(new Uint8Array(await zip.arrayBuffer()));
+  assert.deepEqual(extracted, normalizeZipEntries(redacted.files).map((file) => ({ path: file.path, content: String(file.content) })), 'every exported ZIP path and byte-decoded text exactly matches the previewed file list');
+}
+
+function testReportContextInvalidation() {
+  const base = {
+    tab: { id: 9, title: 'Synthetic page', url: 'https://fixture.invalid/watch' },
+    tabRevision: 4,
+    state: { mediaItems: [{ id: 'one', url: 'https://fixture.invalid/one.mp4' }], queue: { pending: [] } },
+    settings: { includeSensitiveUrlsInReports: false, queueHistoryRetentionDays: 7 },
+    siteAccess: { granted: true, origin: 'https://fixture.invalid/*' },
+    diagnostics: { errors: {} },
+    detailedScan: { generatedAt: 'first', frame: { url: 'https://fixture.invalid/watch', title: 'Synthetic page' }, decisions: [{ normalizedUrl: 'https://fixture.invalid/one.mp4', acceptedByBasicScanner: true }] },
+    persistedQueueHistory: { savedAt: '2026-08-17T12:00:00.000Z', pendingCount: 0 },
+    includeSensitiveUrls: false
+  };
+  const context = buildReportContext(base);
+  const volatileOnly = buildReportContext({ ...base, detailedScan: { ...base.detailedScan, generatedAt: 'later' } });
+  assert.equal(reportContextsMatch(context, volatileOnly), true, 'volatile report-generation timestamps do not invalidate an otherwise identical preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, tab: { ...base.tab, url: 'https://fixture.invalid/other' } })), false, 'source-page navigation invalidates the preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, tabRevision: 5 })), false, 'source-tab revision changes invalidate the preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, state: { ...base.state, mediaItems: [...base.state.mediaItems, { id: 'two', url: 'https://fixture.invalid/two.mp4' }] } })), false, 'candidate-state changes invalidate the preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, state: { ...base.state, queue: { pending: [{ id: 'job' }] } } })), false, 'queue changes invalidate the preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, settings: { ...base.settings, queueHistoryRetentionDays: 1 } })), false, 'settings changes invalidate the preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, detailedScan: { ...base.detailedScan, decisions: [{ normalizedUrl: 'https://fixture.invalid/two.mp4', acceptedByBasicScanner: true }] } })), false, 'source-page scan evidence changes invalidate the preview');
+  assert.equal(reportContextsMatch(context, buildReportContext({ ...base, includeSensitiveUrls: true })), false, 'sensitivity changes invalidate the preview');
+}
+
+function readStoredZipEntries(bytes) {
+  const decoder = new TextDecoder();
+  const entries = [];
+  let offset = 0;
+  while (offset + 30 <= bytes.length) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
+    if (view.getUint32(0, true) !== 0x04034b50) break;
+    const compressedSize = view.getUint32(18, true);
+    const nameLength = view.getUint16(26, true);
+    const extraLength = view.getUint16(28, true);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    entries.push({
+      path: decoder.decode(bytes.slice(nameStart, nameStart + nameLength)),
+      content: decoder.decode(bytes.slice(dataStart, dataStart + compressedSize))
+    });
+    offset = dataStart + compressedSize;
+  }
+  return entries;
+}
 
 async function testMalformedDiagnosticsAreHarmless() {
   const diagnostics = new DiagnosticsManager();

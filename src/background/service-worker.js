@@ -1,9 +1,10 @@
 import { HLS_OUTPUT_METHODS, MEDIA_TYPES, MESSAGE_TYPES } from '../shared/constants.js';
 import { setDebugLogging, warn } from '../shared/logger.js';
-import { getSettings, saveSettings } from '../shared/storage-utils.js';
+import { getQueueHistory, getSettings, saveSettings } from '../shared/storage-utils.js';
 import { getActiveTab } from '../shared/utils.js';
 import { isContentScriptMessageType, isPrivilegedExtensionMessageType, validateMessage } from '../shared/validators.js';
 import { runSelfTests } from '../shared/self-tests.js';
+import { buildReportContext, redactReportValue, reportContextsMatch, reportPreviewToken } from '../shared/report-privacy.js';
 import { DiagnosticsManager } from './diagnostics-manager.js';
 import { DownloadManager } from './download-manager.js';
 import { MediaDetector } from './media-detector.js';
@@ -72,10 +73,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   handleMessageAfterInitialization(message, sender).then(
     (response) => sendResponse({ ok: true, ...response }),
-    (error) => sendResponse({ ok: false, error: error.message || 'Request failed.', details: error })
+    (error) => sendResponse(publicErrorResponse(error))
   );
   return true;
 });
+
+function publicErrorResponse(error) {
+  return {
+    ok: false,
+    error: redactReportValue(error?.message || 'Request failed.', 'message'),
+    details: {
+      name: publicErrorField(error?.name || 'Error', 'name', 80),
+      code: publicErrorField(error?.code || '', 'code', 96),
+      category: publicErrorField(error?.category || '', 'category', 64)
+    }
+  };
+}
+
+function publicErrorField(value, key, maxLength) {
+  return String(redactReportValue(String(value || ''), key)).slice(0, maxLength);
+}
 
 async function handleMessageAfterInitialization(message, sender) {
   await initializationPromise;
@@ -218,6 +235,8 @@ async function handleMessage(message, sender) {
       return { selfTests: runSelfTests() };
     case MESSAGE_TYPES.GENERATE_REPORT:
       return generateReport(message);
+    case MESSAGE_TYPES.VALIDATE_REPORT_PREVIEW:
+      return validateReportPreview(message);
     default:
       return { ok: false, error: 'Unsupported message type.' };
   }
@@ -473,6 +492,7 @@ async function generateReport(message = {}) {
   const tabState = tabMediaStore.getTabState(tab.id);
   const report = await reportManager.buildActiveTabReport({
     tab,
+    tabRevision,
     siteAccess,
     tabState,
     detailedScan,
@@ -481,6 +501,50 @@ async function generateReport(message = {}) {
     includeSensitiveUrls: Boolean(message.includeSensitiveUrls)
   });
   return { report };
+}
+
+async function validateReportPreview(message = {}) {
+  if (reportPreviewToken(message.context, message.previewDigest, message.generatedAt) !== message.previewToken) {
+    return { valid: false, reason: 'The preview integrity marker does not match the reviewed files. Build a new preview.' };
+  }
+  const tab = await getTargetTab(message);
+  if (!Number.isInteger(tab?.id) || tab.id !== message.context?.tabId) {
+    return { valid: false, reason: 'The source tab is no longer available. Build a new preview from the current page.' };
+  }
+  const tabRevision = tabMediaStore.getTabRevision(tab.id);
+  if (tabRevision !== message.context?.tabRevision) {
+    return { valid: false, reason: 'The source page changed after this preview was built.' };
+  }
+
+  const settings = await getSettings();
+  const siteAccess = await hasOriginPermission(tab.url);
+  const diagnosticsSnapshot = diagnostics.snapshot();
+  let persistedQueueHistory = null;
+  try { persistedQueueHistory = await getQueueHistory(); } catch (_error) {}
+  const { report: detailedScan, error: scannerError } = await requestDetailedPageScan(tab.id);
+  if (!tabMediaStore.isTabRevisionCurrent(tab.id, tabRevision)) {
+    return { valid: false, reason: 'The source page changed during preview validation.' };
+  }
+  const normalizedScan = detailedScan || { unavailable: true, error: scannerError || 'Detailed page scan unavailable.' };
+  const tabState = {
+    ...tabMediaStore.getTabState(tab.id),
+    queue: downloadManager.getState()
+  };
+  const currentContext = buildReportContext({
+    tab,
+    tabRevision,
+    state: tabState,
+    settings,
+    siteAccess,
+    diagnostics: diagnosticsSnapshot,
+    detailedScan: normalizedScan,
+    persistedQueueHistory,
+    includeSensitiveUrls: message.context?.sensitivity === 'sensitive-urls'
+  });
+  if (!reportContextsMatch(message.context, currentContext)) {
+    return { valid: false, reason: 'Report inputs changed after this preview was built. Review a fresh preview before exporting.' };
+  }
+  return { valid: true };
 }
 
 async function saveSettingsFromMessage(message) {

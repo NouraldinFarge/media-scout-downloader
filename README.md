@@ -2,7 +2,7 @@
 
 Media Scout Downloader is a local-first Chrome Manifest V3 extension for finding and downloading media that the active page has already exposed to the browser. It favors a clear recommendation in the popup, keeps advanced evidence in a named side-panel workspace, and fails closed when a path would require bypassing access controls.
 
-Version 3.7.12 is a private release-readiness candidate. Complete the manual Chrome gate in [`TEST_PLAN.md`](TEST_PLAN.md) before making a public-release claim.
+Version 3.7.13 is a private release-readiness candidate. Complete the documented P0/P1 gates and manual browser matrix in [`TEST_PLAN.md`](TEST_PLAN.md) before making a public-release claim.
 
 ## What it does
 
@@ -11,7 +11,7 @@ Version 3.7.12 is a private release-readiness candidate. Complete the manual Chr
 - Downloads supported direct files through Chrome's download API.
 - Handles bounded, unencrypted MPEG-TS HLS with Smart MP4, MP4 remux, timestamp-fixed TS, raw TS concatenation, playlist-only, or an external-helper note.
 - Keeps a queue with pause, resume, cancel, retry, progress, and privacy-reduced restart history.
-- Generates local diagnostic ZIP reports with a preview and redaction controls.
+- Generates local diagnostic ZIP reports with a field-by-field exposure summary, literal text-file preview, stale-input invalidation, and redaction controls.
 - Offers optional per-site or all-site network detection while retaining basic active-tab scanning.
 
 It does not decrypt DRM, defeat encryption, bypass authentication or paywalls, reuse protected stream components, evade CORS, or scrape hidden episode numbers.

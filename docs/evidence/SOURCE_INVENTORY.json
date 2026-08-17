@@ -1,0 +1,821 @@
+{
+  "schemaVersion": 1,
+  "product": "Media Scout Downloader",
+  "candidateVersion": "3.7.13",
+  "generatedAt": "2026-08-17",
+  "license": "Project code and assets are distributed under LICENSE.md: copyright 2026 Nouraldin Farge, all rights reserved.",
+  "scope": "Application/source/test/configuration/assets/documentation and generated sample files. Generated dist/, dependency/tool directories, Git internals, this self-referential output, and the evidence ledger that binds this output hash are excluded.",
+  "caveat": "Repository possession and an all-rights-reserved notice do not independently prove authorship. Owner attestation items remain explicit in PROVENANCE.md.",
+  "files": [
+    {
+      "path": ".github/dependabot.yml",
+      "bytes": 163,
+      "sha256": "520c1ad844c398c19229ce02a179a7d6a9751e945372394ee84bbcc4e9ecf941",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-automation-configuration",
+      "origin": "Supplied private repository configuration, reviewed locally; referenced actions are external at CI runtime and require separately pinned provenance.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 722,
+      "sha256": "e08f4c5d3408ba9fb488d0b03663e64a62e5323ad9d2d59803d9588131e42514",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-automation-configuration",
+      "origin": "Supplied private repository configuration, reviewed locally; referenced actions are external at CI runtime and require separately pinned provenance.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 62,
+      "sha256": "29b20a33cf62675c93143ec50ce0fbdf2af212505c1444e13db4436ae3c7e516",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-configuration",
+      "origin": "Supplied private repository configuration plus reviewed current release-readiness changes.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "assets/icons/icon128.png",
+      "bytes": 1237,
+      "sha256": "8d4406c2f098eaeca396ffbe32d88bffabb2fe87f6d749d76c7a8b599bb79943",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-supplied-raster-asset",
+      "origin": "Present in the supplied private repository snapshot; no embedded author, license, or third-party attribution metadata was found.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "assets/icons/icon16.png",
+      "bytes": 237,
+      "sha256": "10b1e6f6ece45f6d4b1295e1802fd85c1d82a412f66973c6807a2096e57c1afc",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-supplied-raster-asset",
+      "origin": "Present in the supplied private repository snapshot; no embedded author, license, or third-party attribution metadata was found.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "assets/icons/icon32.png",
+      "bytes": 380,
+      "sha256": "759144c2345af4a312ff71b2406c3951e503ececd66cfae52d975e8645df33f4",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-supplied-raster-asset",
+      "origin": "Present in the supplied private repository snapshot; no embedded author, license, or third-party attribution metadata was found.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "assets/icons/icon48.png",
+      "bytes": 487,
+      "sha256": "dcaf5a7ab78498eca9bb576f39c7bc5e3a4204c92fc56ff18202b33b0466ab53",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-supplied-raster-asset",
+      "origin": "Present in the supplied private repository snapshot; no embedded author, license, or third-party attribution metadata was found.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "AUDIT_REPORT.md",
+      "bytes": 11056,
+      "sha256": "a8cd4016c4a3ad36a6cd30f39f89a689a20cfb7355f29dfe324cc2ed9f2fb798",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 4052,
+      "sha256": "fe17e4f2b762e65b2926e6713a86d55d5bca14fa443a479013afcf27ccc5fdb2",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "bytes": 668,
+      "sha256": "ae57cfd7aeabd31e5a81421b07dd319056a4961a52f6cbb236478f776bcf5b7e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/DEEP_AUDIT_3.7.13.md",
+      "bytes": 10389,
+      "sha256": "96686cb279b5226cb715615b84034a8b379c498bf6e95b6556f67ca6c594a573",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/OWNER_ATTESTATION_DRAFT.md",
+      "bytes": 3070,
+      "sha256": "8fa08b497c14ec3460f57de8acf30679abe5c0037530bc91639f1e89b1dff297",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/P0_GATE.md",
+      "bytes": 5414,
+      "sha256": "85958dd7e0b1b1baf6b59a25c2fb945b9c0137d1ca41dad79f0fbfd2f15e7d10",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/RELEASE_READINESS_LOG.md",
+      "bytes": 4298,
+      "sha256": "5a58995a0cd4b44f187917b8eabe5477d88bcb26c22ec91deac9db046df1730a",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/REPORT_PRIVACY_REVIEW.md",
+      "bytes": 6898,
+      "sha256": "d27779ce73f1ea607b979ea86e8d7616c0cd3dfeb1b6e2a62252bbaf22312b26",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/data-exposure.json",
+      "bytes": 2682,
+      "sha256": "edc038135b3daa72b0c3a84c3a4390b84cba117cc8588722526c344f550fcd4e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/decision-log.json",
+      "bytes": 471,
+      "sha256": "71db5e615b415eb83295fa6891a826695e28ec73803b50ce8f9409cae0abebc4",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/detected-media.json",
+      "bytes": 716,
+      "sha256": "bc88b2535cf1bdb9a6695489c1eba54e9c846fd2617adf3ad0215036ab3a3eab",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/extension-state.json",
+      "bytes": 4897,
+      "sha256": "79ba28c977737e7477ac642eaffa7bcc61c52593a819a7810d0a77797fcf750e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/limitations.txt",
+      "bytes": 1746,
+      "sha256": "84f19ecd5df08009cddc5121daf715f58e90dd2e73c566f77cea0510fdb861e3",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/media-type-registry.json",
+      "bytes": 16300,
+      "sha256": "c1fa51e369ac153076955cb1d75cd8d66f10799f7be13ce7dfadb082ee55fe86",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/page-scan.json",
+      "bytes": 1282,
+      "sha256": "c82d57b28a6ecda955b558e5590566334cbfeb11c9d4ff36939e82834e6331e7",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/README.txt",
+      "bytes": 1846,
+      "sha256": "4eb76427dba8f046890bddd29a97184fb778dc222b727000fc9c241f1634b955",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/SAMPLE_MANIFEST.json",
+      "bytes": 1801,
+      "sha256": "69130ee7a427c31571e0fbcc3b251db1d76e6a0fed8b571bd33bb9be05729bb1",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/samples/redacted-report-3.7.13/summary.md",
+      "bytes": 2383,
+      "sha256": "93d3c9f3941ef6926d0a640c492a2a295a9b335a14874c8dc065e6599e835223",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-sanitized-evidence",
+      "origin": "Generated deterministically by test-harness/generate-sanitized-report-sample.mjs from repository-owned synthetic .invalid-domain data.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "docs/evidence/SECURITY_PRIVACY_REVIEW.md",
+      "bytes": 11172,
+      "sha256": "dab6f7a6dadc1f5082afc451d5a9f90b1f81c6d9e9abc0bdda10ea68aac822d6",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/evidence/WORKTREE_CLASSIFICATION.md",
+      "bytes": 8512,
+      "sha256": "df493d7631ac2fa9a8b1f00a5d352d3d5483c2614a76e3bc7b664053fcf35e3f",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/store/CHROME_WEB_STORE_DRAFT.md",
+      "bytes": 11532,
+      "sha256": "2f42819b10699d5c4ded4b99820dfcea183b9128da08ed0646c60a87da0ff60a",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "docs/THREAT_MODEL.md",
+      "bytes": 13365,
+      "sha256": "d9e87a043cb0ceedcf1dbf1cca12d18de2d0ef25e7ecdc7b58f30934c0e7cb92",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "DOWNLOAD_ALLOW_LIST.md",
+      "bytes": 5247,
+      "sha256": "6a0e01266ee07e602dd8433f2c3b50c4010a408b33db42abea806e24273f24cf",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "LICENSE.md",
+      "bytes": 248,
+      "sha256": "9ccd7efc32434c8eb7c688657ecbfda78fa2b30e270cfbce6abb2ef74bc1e0e1",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1304,
+      "sha256": "60c96252046ce2d572e7e8832f91ca935163e7fb1d0183cfbe6ffdfdb0858a99",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-configuration",
+      "origin": "Supplied private repository configuration plus reviewed current release-readiness changes.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 260,
+      "sha256": "719029ae084e13c587a36a360c516e98b9b5296379bb5a5739c06481bf055bab",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "generated-package-metadata",
+      "origin": "Generated by npm from package.json; the P0 dependency tree is empty.",
+      "ownerAttestationRequired": false
+    },
+    {
+      "path": "package.json",
+      "bytes": 749,
+      "sha256": "7a76b5eeeef18da08514fa068913f66bc29e8e63c637bec5d13f85cc2a1383c0",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-configuration",
+      "origin": "Supplied private repository configuration plus reviewed current release-readiness changes.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "PRIVACY.md",
+      "bytes": 5561,
+      "sha256": "61b7ae350a657ca5957cdbff8955281136ee86eb48516f26a1c8c8474572db03",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "PROVENANCE.md",
+      "bytes": 8360,
+      "sha256": "056d4dea2bee1162252da50f7b41efa86d7703f07b288f36a69582cdfc05a7e5",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "README.md",
+      "bytes": 6795,
+      "sha256": "2193d8896c0d433681e919687913a4d7f85f7ddc7fc375c8e3a38d5e0bd6620e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "SECURITY.md",
+      "bytes": 757,
+      "sha256": "64a3ec36861d7dc76a83065f67643bd3fc4045b3e8b505a97f8951dade6a0ab1",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/diagnostics-manager.js",
+      "bytes": 4539,
+      "sha256": "7ba974027847e995532c9ca6e16425a1c9a07252f80debe001fc3ca92f4f672e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/download-manager.js",
+      "bytes": 11632,
+      "sha256": "1bd5028724050a87cf002f531bddbd297fae2b5db35677f2ad3ab0dd657c502a",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/download-strategies.js",
+      "bytes": 24801,
+      "sha256": "0434b775f95451dd4b5f87ee3a3ede9e43c71c4a3ce4bc0912560eef221a9234",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/media-detector.js",
+      "bytes": 36232,
+      "sha256": "f1e868275e859fdabe2474a7ce83914702137ac3bf3722e39c8ebefcd88ed72a",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/queue-manager.js",
+      "bytes": 25488,
+      "sha256": "05cdf47a46fa5b32a43970de14e06813a9d1b3e824343d4d745350d21304b51c",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/report-manager.js",
+      "bytes": 6240,
+      "sha256": "8b2c51748e5325e6371d7f5459508896e59cd0afa32eb5b1e0cc4e58e16450f5",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/service-worker.js",
+      "bytes": 59249,
+      "sha256": "816b09b5d4cfdceb5099f38bf03a9f36286afc334dd96d9b76ae4f2298da0bd2",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/background/tab-media-store.js",
+      "bytes": 13649,
+      "sha256": "f0efa7d17f8940c35a764f0abac3c993467ea5b11d9e6befaf9ce61ef952de61",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/content/content.js",
+      "bytes": 64486,
+      "sha256": "ce0a38463b1f8b7bae136b1f46e2fa93c5b76f209bc0b15ec9f87281ca96e3ea",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/content/mp4-remuxer.js",
+      "bytes": 36827,
+      "sha256": "8c24d751915d236807c3adc151221a65beaf380f6470d6945769ada84930753b",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "repository-supplied-remux-source",
+      "origin": "Present in the supplied private repository snapshot; no import, bundled dependency, copyright header, or embedded third-party attribution was found. Limited exact-phrase public search found no match but is not proof of originality.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/content/page-media-scanner.js",
+      "bytes": 48983,
+      "sha256": "f0a04ea6db6a282da31636a28f968ad8b84cf8f53bc8826950587bb5b6c6d5da",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/options/options.css",
+      "bytes": 6942,
+      "sha256": "85b2ba11ca473280a34ff1ba445f66d914dc616a433b337a999872bf72d004c5",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/options/options.html",
+      "bytes": 14061,
+      "sha256": "8641923901a0da49434d73092900cac1b9123c8edeece2c6534560d8d3231307",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/options/options.js",
+      "bytes": 21396,
+      "sha256": "2345296e08fd7dfba4c9ac4dedb842a0876a9fd0cfa85baeaac078035e55f440",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/popup/popup.css",
+      "bytes": 7783,
+      "sha256": "bfb135894535af1cd81de93fbf7b86a81f22e8032d98459aac8ec574135e7c79",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/popup/popup.html",
+      "bytes": 2954,
+      "sha256": "de1071e5c47917c8e190038fb35c3dbddd2a3bc96c33e2f9b71f444a41de55bb",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/popup/popup.js",
+      "bytes": 18507,
+      "sha256": "cc2fa054a187b61e2b361b08a469159099d9a31b7dd1f7a52eb57a875db424a5",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/constants.js",
+      "bytes": 6337,
+      "sha256": "4a32a9d6e1f2df0590f30ea54431936a7c75248b493644cf269ba5dffb3ad25f",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/download-allow-list.js",
+      "bytes": 65665,
+      "sha256": "76d830810ddda56cd141daca7c82c10c08e40f7dcb2318a4a5b61ecf72f85814",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/filename-utils.js",
+      "bytes": 4180,
+      "sha256": "87f6757f7abd63ca8be94860abee406fc8116f908d27210e8b3d3c7c5c981b48",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/frontend-model.js",
+      "bytes": 24969,
+      "sha256": "45d06139dce27adf283c8c14f24696bd18994d98016a3df60707b30fae9d5530",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/logger.js",
+      "bytes": 655,
+      "sha256": "415a9776bd33e498ab795c71515ebae64c5d6f3bd5ab774f7e0b506e7954c26e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/media-type-registry.js",
+      "bytes": 8216,
+      "sha256": "2919670b05ccb17b29aaff4323660a8372dbe7c0f23042b877df99386e959329",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/report-privacy.js",
+      "bytes": 21311,
+      "sha256": "c3aeae723f6c6f77a17c03edfc25add772fa2c4937bb2ca7f41caa20f966aec1",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/report-utils.js",
+      "bytes": 22836,
+      "sha256": "c5b4c23b154c93e2dfb75893833bbe80e7aae5f0d3922811daf0523ff72c307b",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/self-tests.js",
+      "bytes": 34366,
+      "sha256": "dcf446d2324ef8326ac949ea3f512fc5b85c40cb5384ed633707919b8c4029c8",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/storage-utils.js",
+      "bytes": 6870,
+      "sha256": "1a30d909c9482e56d8a71d78e235a9d3dd3494bc032e964ded4552d895c37164",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/ui/tokens.css",
+      "bytes": 2248,
+      "sha256": "7d85197a1a976186c5ef3af58ddf9191df517dc7a0a866411a46c1135bf7e3c9",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/utils.js",
+      "bytes": 5028,
+      "sha256": "1fe7859ebeda8399bacabe5dd8818297611321f89785c98d00c840af12974040",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/validators.js",
+      "bytes": 13388,
+      "sha256": "fe75c52f9ccae404ae9e2e42c8a2cc8766c0c26a7e4b159ae1f4cd176d4cc3c2",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/shared/zip-utils.js",
+      "bytes": 5631,
+      "sha256": "d55b6687a40e3983b73ddbeaab171b0e383d24f977ce34784c3b7a53b84e0b2a",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/sidepanel/sidepanel.css",
+      "bytes": 13073,
+      "sha256": "e5ee9e37956696fee8a3faf493a3443bcd9798a8669ca9b772f0976c758c219e",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/sidepanel/sidepanel.html",
+      "bytes": 2176,
+      "sha256": "21945f17ff77d69682066bf1afabe3e2dbb3c61e66f42b5de768d2292632357f",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "src/sidepanel/sidepanel.js",
+      "bytes": 54534,
+      "sha256": "3add78c1d8893cb31c7e32ee610e9981138f947cad8da0ee146a9f1df894dc97",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "application-source",
+      "origin": "Supplied private repository implementation plus reviewed changes made during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "TEST_PLAN.md",
+      "bytes": 10196,
+      "sha256": "72b351a86de42ae6642f5e65f59b7b25049dbc955a27b8b6531f6bdeed481c33",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "test-harness/build-extension.mjs",
+      "bytes": 1730,
+      "sha256": "e6f00e008f7c7ca7b287cd3330a7f5913f38bf8776f01f37c4864f46a99d5f13",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "test-or-build-source",
+      "origin": "Supplied private repository tooling or reviewed code added during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "test-harness/format-files.mjs",
+      "bytes": 1134,
+      "sha256": "8721574c8fc65b310e72a20070c4b780ee059245b75d453b66ba537f6caae6e1",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "test-or-build-source",
+      "origin": "Supplied private repository tooling or reviewed code added during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "test-harness/generate-sanitized-report-sample.mjs",
+      "bytes": 5126,
+      "sha256": "b70583ac51663d29e4688c7fb9c6a2d0a91a253cd77fe76f7f379ffe6d0d6a2d",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "test-or-build-source",
+      "origin": "Supplied private repository tooling or reviewed code added during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "test-harness/generate-source-inventory.mjs",
+      "bytes": 5449,
+      "sha256": "f5f2dd570a354e688365cd18d0ef5e7e59bf3ed4e25cd695aa15b235e1b4ea19",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "test-or-build-source",
+      "origin": "Supplied private repository tooling or reviewed code added during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "test-harness/run-tests.mjs",
+      "bytes": 33744,
+      "sha256": "1e593071ac09025c7e4d7131f87dafcc9c56df0be921452458ad96a42550bb8d",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "test-or-build-source",
+      "origin": "Supplied private repository tooling or reviewed code added during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "test-harness/static-checks.mjs",
+      "bytes": 8216,
+      "sha256": "c83e094080a4f4356cd418589a5a39c2f3dec68ca5ae5f1bfe5ca0c4e63e5279",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "test-or-build-source",
+      "origin": "Supplied private repository tooling or reviewed code added during the current AI-assisted release-readiness work.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "TESTING.md",
+      "bytes": 1671,
+      "sha256": "44bbcda81243128da12fbc03a21aa19c4a87c455ce155187a194cc5902d96b70",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 1234,
+      "sha256": "775c657534a9de429abda8d7d9f2d5fd62d43f9e3ae05777ae0868b6475a8acd",
+      "licenseStatus": "Covered by repository LICENSE.md (all rights reserved); not an OSI-approved open-source license.",
+      "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
+      "kind": "documentation-or-evidence",
+      "origin": "Supplied private documentation or reviewed AI-assisted draft/evidence created from local inspection and cited primary sources.",
+      "ownerAttestationRequired": true
+    }
+  ]
+}

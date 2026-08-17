@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.7.13 - 2026-08-17 (private candidate)
+
+- Replace the report filename/size-only screen with a field-by-field exposure table and literal, searchable, selectable previews for every generated text file.
+- Minimize default reports by omitting titles and filenames, hashing hostname/path correlation values, and removing query names, query values, local paths, blob identifiers, URL credentials, and secret-shaped fields.
+- Keep sensitive URL mode behind both a saved setting and a separate per-report confirmation while continuing to redact credentials and secret-shaped values.
+- Normalize and de-duplicate report paths before both preview and ZIP generation so exported paths and contents exactly match the reviewed file set.
+- Invalidate previews when the source tab, scan, candidate state, queue/history, settings, permissions, diagnostics, or sensitivity changes, and revalidate current evidence immediately before export.
+- Add synthetic regression coverage for identifiers, embedded/relative/blob/credential URLs, query data, secrets, Unicode, ZIP traversal, preview invalidation, stale source evidence, and preview/export equality.
+
 ## 3.7.12 - 2026-08-16
 
 - Fix empty download-folder persistence, bounded integer settings, settings validation, and side-panel request races.

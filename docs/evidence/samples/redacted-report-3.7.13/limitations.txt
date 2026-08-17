@@ -1,0 +1,16 @@
+Known safe-detection limits
+
+Media Scout Downloader does not bypass DRM, encryption, paywalls, authentication, signed URL systems, CORS, or other access controls.
+Expanded detection includes videos, audio, HLS/DASH/other manifests, segments/fragments, subtitles, posters/thumbnails, and selected media metadata hints. Segment assembly/conversion remains intentionally limited to safe, normally accessible, non-encrypted HLS cases supported by the local remuxer.
+It does not include site-specific scraping logic for streaming platforms.
+
+Common reasons another extension may show a video that Media Scout does not:
+1. The other extension observed network traffic before Media Scout was opened or before site access was granted.
+2. The other extension has broader host permissions or site-specific logic.
+3. The page uses Media Source Extensions, where the <video> element points to a blob: URL while real segments are fetched separately; Media Scout can only merge non-encrypted MPEG-TS HLS segments when normal page fetch access exposes them.
+4. The stream uses DRM/EME, encrypted HLS, DASH ContentProtection, signed URLs, or authentication-bound URLs.
+5. The media is loaded by a service worker, cache, iframe, or player script in a way that is not exposed as a simple downloadable file URL.
+6. The media is inside an iframe origin that Chrome has not granted the extension permission to scan.
+7. The resource has no standard media extension or media response header visible to the extension.
+
+The report is diagnostic only. It should not be used to defeat restrictions. Non-encrypted HLS merging, when available, uses normal browser fetch access only and stops on encryption, DRM, CORS, authentication, signed URLs, and access-control failures.

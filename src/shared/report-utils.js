@@ -2,7 +2,7 @@ import { DOWNLOAD_STATUSES, ERROR_CATEGORIES, MEDIA_TYPES } from './constants.js
 import { MEDIA_TYPE_REGISTRY } from './media-type-registry.js';
 import { getHostname, nowISO, stableHash } from './utils.js';
 
-const REPORT_SCHEMA_VERSION = 6;
+const REPORT_SCHEMA_VERSION = 7;
 
 /**
  * Returns a human-safe URL summary for logs/reports while preserving enough detail
@@ -15,22 +15,20 @@ export function summarizeUrl(rawUrl = '') {
     const url = new URL(rawUrl);
     return {
       protocol: url.protocol.replace(':', ''),
-      hostname: url.hostname,
+      hostnameHash: url.hostname ? stableHash(url.hostname.toLowerCase()) : '',
       pathnameExtension: extensionFromPath(url.pathname),
       pathHash: stableHash(url.pathname || '/'),
       queryParameterCount: Array.from(url.searchParams.keys()).length,
       urlHash: stableHash(url.toString())
     };
   } catch (_error) {
-    return { protocol: '', hostname: '', pathnameExtension: '', pathHash: '', queryParameterCount: 0, urlHash: stableHash(rawUrl) };
+    return { protocol: '', hostnameHash: '', pathnameExtension: '', pathHash: '', queryParameterCount: 0, urlHash: stableHash(rawUrl) };
   }
 }
 
-export function buildReportFilename(tab = {}, generatedAt = nowISO()) {
+export function buildReportFilename(_tab = {}, generatedAt = nowISO()) {
   const timestamp = generatedAt.replace(/[:.]/g, '-').replace('T', '_').replace('Z', 'Z');
-  const host = getHostname(tab.url || '') || 'active-tab';
-  const safeHost = host.replace(/[^a-z0-9.-]+/gi, '-').slice(0, 60) || 'active-tab';
-  return `media-scout-report-${safeHost}-${timestamp}.zip`;
+  return `media-scout-report-${timestamp}.zip`;
 }
 
 export function buildReportReadme(mode = 'redacted') {
@@ -41,10 +39,17 @@ export function buildReportReadme(mode = 'redacted') {
     '',
     'Privacy note:',
     '- The extension does not upload this report anywhere.',
-    mode === 'full' ? '- This ZIP may contain the active tab URL and candidate media URLs because you explicitly allowed a full report.' : '- This ZIP redacts full URLs by default. It keeps hostnames, path hashes, and query-parameter counts for debugging without retaining full addresses.',
-    '- Review the files before sharing them with anyone; page titles, hostnames, filenames, and diagnostic context can still be sensitive.',
+    mode === 'full' ? '- Sensitive URL mode was explicitly confirmed. Exact titles, hostnames, filenames, URL paths, and non-secret query values may appear; URL credentials and secret-shaped fields remain redacted.' : '- Default mode omits page titles and filenames, replaces hostnames and URL paths with correlation hashes, and omits query names and values.',
+    '- Review every file in the local preview before sharing it. Titles, hostnames, filenames, browser details, and diagnostic context can identify private activity.',
+    '- Screenshots are never generated or included.',
+    '',
+    'Retention and cleanup:',
+    '- Preview contents exist only in the open extension page memory and are replaced or cleared when source evidence changes.',
+    '- The extension does not keep a copy of an exported ZIP. The browser and operating system control the downloaded file after export.',
+    '- Delete exported ZIPs manually when they are no longer needed. Queue-history retention follows the configured local retention period and can be cleared from Diagnostics.',
     '',
     'Useful files:',
+    '- data-exposure.json: field-by-field included, omitted, hashed, or redacted handling for this exact report mode.',
     '- summary.md: readable findings and likely reasons media was not found.',
     '- detected-media.json: items Media Scout accepted into the popup list.',
     '- page-scan.json: DOM/media/frame/performance details visible to the content script.',
@@ -158,7 +163,7 @@ export function buildDecisionLog(detailedScan = {}) {
   }));
 }
 
-export function buildExtensionState({ state, settings, diagnostics, siteAccess, selfTests, generatedAt, persistedQueueHistory, allowSensitiveUrls = false }) {
+export function buildExtensionState({ state, settings, diagnostics, siteAccess, selfTests, generatedAt, persistedQueueHistory, runtimeDetails, exposure, allowSensitiveUrls = false }) {
   return {
     schemaVersion: REPORT_SCHEMA_VERSION,
     generatedAt,
@@ -168,13 +173,19 @@ export function buildExtensionState({ state, settings, diagnostics, siteAccess, 
     persistedQueueHistory: persistedQueueHistory || null,
     diagnostics,
     selfTests,
+    runtimeDetails: runtimeDetails || {},
+    dataExposure: exposure || [],
     privacy: {
       generatedLocally: true,
       uploadedByExtension: false,
       fullUrlsStoredInDiagnostics: false,
+      screenshotsIncluded: false,
+      previewRetention: 'Extension-page memory only; invalidated when source evidence or report options change.',
+      exportedZipRetention: 'Controlled by the browser, operating system, and user after export; delete manually when no longer needed.',
+      queueHistoryRetentionDays: Number(settings?.queueHistoryRetentionDays) || 0,
       note: allowSensitiveUrls
-        ? 'This on-demand ZIP may contain full URLs because the user explicitly enabled them.'
-        : 'This on-demand ZIP redacts full URLs and secret-shaped fields by default; review page-visible context before sharing.'
+        ? 'Sensitive URL mode may include exact titles, hostnames, filenames, URL paths, and non-secret query values after explicit confirmation. Credentials and secret-shaped fields remain redacted.'
+        : 'Default mode omits titles and filenames, hashes host/path correlation values, and redacts full URLs, local paths, and secret-shaped fields.'
     }
   };
 }

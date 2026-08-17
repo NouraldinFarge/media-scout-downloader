@@ -1,0 +1,89 @@
+{
+  "mode": "redacted",
+  "fields": [
+    {
+      "id": "page-title",
+      "label": "Page titles",
+      "handling": "omitted",
+      "detail": "Page-visible titles are omitted because they can reveal private activity."
+    },
+    {
+      "id": "hostname",
+      "label": "Hostnames",
+      "handling": "hashed",
+      "detail": "Hostnames are replaced with stable local correlation hashes."
+    },
+    {
+      "id": "filenames",
+      "label": "Filenames",
+      "handling": "omitted",
+      "detail": "Runtime filenames and display names are omitted."
+    },
+    {
+      "id": "full-urls",
+      "label": "Full URLs",
+      "handling": "redacted",
+      "detail": "Full page and media URLs are replaced with redacted summaries."
+    },
+    {
+      "id": "url-paths",
+      "label": "URL paths or hashes",
+      "handling": "hashed",
+      "detail": "Only path hashes and safe extension hints are retained."
+    },
+    {
+      "id": "query-names",
+      "label": "Query names",
+      "handling": "omitted",
+      "detail": "Query-parameter names are omitted; only a count may remain."
+    },
+    {
+      "id": "query-values",
+      "label": "Query values",
+      "handling": "omitted",
+      "detail": "Query-parameter values are omitted."
+    },
+    {
+      "id": "tokens-secrets",
+      "label": "Tokens or secret-shaped fields",
+      "handling": "redacted",
+      "detail": "Secret-shaped fields, credentials, and token-like diagnostic text are redacted."
+    },
+    {
+      "id": "queue-history",
+      "label": "Queue history",
+      "handling": "included-redacted",
+      "detail": "Current queue evidence is redacted; persisted queue history is privacy-reduced and bounded by retention settings."
+    },
+    {
+      "id": "diagnostics",
+      "label": "Diagnostics",
+      "handling": "included",
+      "detail": "Bounded local strategy outcomes, error categories, and self-test results are included."
+    },
+    {
+      "id": "screenshots",
+      "label": "Screenshots",
+      "handling": "omitted",
+      "detail": "Screenshots are not generated or included."
+    },
+    {
+      "id": "local-paths",
+      "label": "Local paths",
+      "handling": "redacted",
+      "detail": "Drive, user-profile, home, temporary, and network paths are redacted."
+    },
+    {
+      "id": "browser-platform",
+      "label": "Browser or platform details",
+      "handling": "included",
+      "detail": "The extension version, manifest permissions, user agent, platform, and language are included."
+    },
+    {
+      "id": "blob-identifiers",
+      "label": "Blob identifiers",
+      "handling": "redacted",
+      "detail": "Page-local blob identifiers are always redacted."
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 7,
+  "generatedAt": "2026-08-17T17:00:00.000Z",
+  "siteAccess": {
+    "granted": true,
+    "origin": "https://host-sennqh/path-3hmri"
+  },
+  "settings": {
+    "enabledFileTypes": {
+      "mp4": true
+    },
+    "maxParallelDownloads": 3,
+    "segmentParallelism": 4,
+    "segmentRetryLimit": 2,
+    "hlsOutputMethod": "smart-mp4",
+    "hlsWorkMode": "balanced",
+    "hlsVariantPreference": "highest",
+    "showManualM3u8Converter": false,
+    "includeSensitiveUrlsInReports": false,
+    "queueHistoryRetentionDays": 7,
+    "episodeBatchScanParallelism": 2,
+    "confirmLargeEpisodeBatchThreshold": 8,
+    "filenameTemplate": "[filename omitted by default]",
+    "duplicateBehavior": "auto-number",
+    "notifications": true,
+    "debugLogs": false,
+    "preferredSubfolder": "[filename omitted by default]"
+  },
+  "queue": {
+    "maxParallel": 3,
+    "activeCount": 0,
+    "paused": false,
+    "pending": [],
+    "active": [],
+    "completed": [],
+    "failed": [],
+    "canceled": []
+  },
+  "persistedQueueHistory": null,
+  "diagnostics": {
+    "strategies": {},
+    "errors": {},
+    "updatedAt": "2026-08-17T17:00:00.000Z"
+  },
+  "selfTests": {
+    "passed": true,
+    "resultCount": 9
+  },
+  "runtimeDetails": {
+    "extensionVersion": "3.7.13",
+    "manifestVersion": 3,
+    "permissions": [
+      "activeTab",
+      "downloads",
+      "scripting",
+      "storage",
+      "webRequest",
+      "sidePanel",
+      "notifications"
+    ],
+    "optionalHostPermissions": [
+      "http://*/*",
+      "https://*/*"
+    ],
+    "browserUserAgent": "Node.js/24",
+    "platform": "Win32",
+    "language": "en-US"
+  },
+  "dataExposure": [
+    {
+      "id": "page-title",
+      "label": "Page titles",
+      "handling": "omitted",
+      "detail": "Page-visible titles are omitted because they can reveal private activity."
+    },
+    {
+      "id": "hostname",
+      "label": "Hostnames",
+      "handling": "hashed",
+      "detail": "Hostnames are replaced with stable local correlation hashes."
+    },
+    {
+      "id": "filenames",
+      "label": "Filenames",
+      "handling": "omitted",
+      "detail": "Runtime filenames and display names are omitted."
+    },
+    {
+      "id": "full-urls",
+      "label": "Full URLs",
+      "handling": "redacted",
+      "detail": "Full page and media URLs are replaced with redacted summaries."
+    },
+    {
+      "id": "url-paths",
+      "label": "URL paths or hashes",
+      "handling": "hashed",
+      "detail": "Only path hashes and safe extension hints are retained."
+    },
+    {
+      "id": "query-names",
+      "label": "Query names",
+      "handling": "omitted",
+      "detail": "Query-parameter names are omitted; only a count may remain."
+    },
+    {
+      "id": "query-values",
+      "label": "Query values",
+      "handling": "omitted",
+      "detail": "Query-parameter values are omitted."
+    },
+    {
+      "id": "tokens-secrets",
+      "label": "Tokens or secret-shaped fields",
+      "handling": "redacted",
+      "detail": "Secret-shaped fields, credentials, and token-like diagnostic text are redacted."
+    },
+    {
+      "id": "queue-history",
+      "label": "Queue history",
+      "handling": "included-redacted",
+      "detail": "Current queue evidence is redacted; persisted queue history is privacy-reduced and bounded by retention settings."
+    },
+    {
+      "id": "diagnostics",
+      "label": "Diagnostics",
+      "handling": "included",
+      "detail": "Bounded local strategy outcomes, error categories, and self-test results are included."
+    },
+    {
+      "id": "screenshots",
+      "label": "Screenshots",
+      "handling": "omitted",
+      "detail": "Screenshots are not generated or included."
+    },
+    {
+      "id": "local-paths",
+      "label": "Local paths",
+      "handling": "redacted",
+      "detail": "Drive, user-profile, home, temporary, and network paths are redacted."
+    },
+    {
+      "id": "browser-platform",
+      "label": "Browser or platform details",
+      "handling": "included",
+      "detail": "The extension version, manifest permissions, user agent, platform, and language are included."
+    },
+    {
+      "id": "blob-identifiers",
+      "label": "Blob identifiers",
+      "handling": "redacted",
+      "detail": "Page-local blob identifiers are always redacted."
+    }
+  ],
+  "privacy": {
+    "generatedLocally": true,
+    "uploadedByExtension": false,
+    "fullUrlsStoredInDiagnostics": false,
+    "screenshotsIncluded": false,
+    "previewRetention": "Extension-page memory only; invalidated when source evidence or report options change.",
+    "exportedZipRetention": "Controlled by the browser, operating system, and user after export; delete manually when no longer needed.",
+    "queueHistoryRetentionDays": 7,
+    "note": "Default mode omits titles and filenames, hashes host/path correlation values, and redacts full URLs, local paths, and secret-shaped fields."
+  }
+}

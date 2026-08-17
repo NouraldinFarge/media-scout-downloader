@@ -1,0 +1,885 @@
+[
+  {
+    "id": "video.mp4",
+    "group": "video",
+    "extensions": [
+      "mp4",
+      "m4v",
+      "mp4v"
+    ],
+    "mimeTypes": [
+      "video/mp4",
+      "application/mp4"
+    ],
+    "label": "MP4 video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.quicktime",
+    "group": "video",
+    "extensions": [
+      "mov",
+      "qt"
+    ],
+    "mimeTypes": [
+      "video/quicktime",
+      "video/x-quicktime"
+    ],
+    "label": "QuickTime video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.webm",
+    "group": "video",
+    "extensions": [
+      "webm"
+    ],
+    "mimeTypes": [
+      "video/webm"
+    ],
+    "label": "WebM video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.ogg",
+    "group": "video",
+    "extensions": [
+      "ogv",
+      "ogx"
+    ],
+    "mimeTypes": [
+      "video/ogg"
+    ],
+    "label": "Ogg video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.mpeg",
+    "group": "video",
+    "extensions": [
+      "mpeg",
+      "mpg",
+      "mpe",
+      "m1v",
+      "m2v"
+    ],
+    "mimeTypes": [
+      "video/mpeg"
+    ],
+    "label": "MPEG video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.transport-stream",
+    "group": "segment",
+    "extensions": [
+      "ts",
+      "m2ts",
+      "mts"
+    ],
+    "mimeTypes": [
+      "video/mp2t"
+    ],
+    "label": "MPEG-TS segment/video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": true,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.matroska",
+    "group": "video",
+    "extensions": [
+      "mkv"
+    ],
+    "mimeTypes": [
+      "video/x-matroska",
+      "video/matroska"
+    ],
+    "label": "Matroska video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.avi",
+    "group": "video",
+    "extensions": [
+      "avi"
+    ],
+    "mimeTypes": [
+      "video/x-msvideo",
+      "video/avi"
+    ],
+    "label": "AVI video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.3gpp",
+    "group": "video",
+    "extensions": [
+      "3gp",
+      "3g2"
+    ],
+    "mimeTypes": [
+      "video/3gpp",
+      "video/3gpp2"
+    ],
+    "label": "3GPP video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "video.flash",
+    "group": "video",
+    "extensions": [
+      "flv",
+      "f4v"
+    ],
+    "mimeTypes": [
+      "video/x-flv"
+    ],
+    "label": "Flash video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": [
+      "legacy"
+    ]
+  },
+  {
+    "id": "video.windows-media",
+    "group": "video",
+    "extensions": [
+      "wmv",
+      "asf"
+    ],
+    "mimeTypes": [
+      "video/x-ms-wmv",
+      "video/x-ms-asf"
+    ],
+    "label": "Windows Media video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": [
+      "legacy"
+    ]
+  },
+  {
+    "id": "video.mxf",
+    "group": "video",
+    "extensions": [
+      "mxf"
+    ],
+    "mimeTypes": [
+      "application/mxf"
+    ],
+    "label": "MXF video",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": [
+      "professional"
+    ]
+  },
+  {
+    "id": "audio.mp3",
+    "group": "audio",
+    "extensions": [
+      "mp3"
+    ],
+    "mimeTypes": [
+      "audio/mpeg",
+      "audio/mp3"
+    ],
+    "label": "MP3 audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.mp4",
+    "group": "audio",
+    "extensions": [
+      "m4a",
+      "mp4a",
+      "m4b"
+    ],
+    "mimeTypes": [
+      "audio/mp4",
+      "audio/x-m4a"
+    ],
+    "label": "MPEG-4 audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.aac",
+    "group": "audio",
+    "extensions": [
+      "aac",
+      "adts"
+    ],
+    "mimeTypes": [
+      "audio/aac",
+      "audio/aacp",
+      "audio/adts"
+    ],
+    "label": "AAC audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.wav",
+    "group": "audio",
+    "extensions": [
+      "wav",
+      "wave"
+    ],
+    "mimeTypes": [
+      "audio/wav",
+      "audio/x-wav",
+      "audio/vnd.wave"
+    ],
+    "label": "WAV audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.ogg",
+    "group": "audio",
+    "extensions": [
+      "ogg",
+      "oga"
+    ],
+    "mimeTypes": [
+      "audio/ogg",
+      "application/ogg"
+    ],
+    "label": "Ogg audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.opus",
+    "group": "audio",
+    "extensions": [
+      "opus"
+    ],
+    "mimeTypes": [
+      "audio/opus"
+    ],
+    "label": "Opus audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.webm",
+    "group": "audio",
+    "extensions": [
+      "weba"
+    ],
+    "mimeTypes": [
+      "audio/webm"
+    ],
+    "label": "WebM audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.flac",
+    "group": "audio",
+    "extensions": [
+      "flac"
+    ],
+    "mimeTypes": [
+      "audio/flac",
+      "audio/x-flac"
+    ],
+    "label": "FLAC audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.aiff",
+    "group": "audio",
+    "extensions": [
+      "aiff",
+      "aif",
+      "aifc"
+    ],
+    "mimeTypes": [
+      "audio/aiff",
+      "audio/x-aiff"
+    ],
+    "label": "AIFF audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "audio.amr",
+    "group": "audio",
+    "extensions": [
+      "amr",
+      "awb"
+    ],
+    "mimeTypes": [
+      "audio/amr",
+      "audio/amr-wb"
+    ],
+    "label": "AMR audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": [
+      "legacy"
+    ]
+  },
+  {
+    "id": "audio.midi",
+    "group": "audio",
+    "extensions": [
+      "mid",
+      "midi"
+    ],
+    "mimeTypes": [
+      "audio/midi",
+      "audio/x-midi"
+    ],
+    "label": "MIDI audio",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "stream.hls",
+    "group": "hls",
+    "extensions": [
+      "m3u8"
+    ],
+    "mimeTypes": [
+      "application/vnd.apple.mpegurl",
+      "application/x-mpegurl",
+      "audio/mpegurl",
+      "audio/x-mpegurl",
+      "application/mpegurl"
+    ],
+    "label": "HLS playlist",
+    "defaultEnabled": true,
+    "manifest": true,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": true,
+    "notes": []
+  },
+  {
+    "id": "playlist.m3u",
+    "group": "playlist",
+    "extensions": [
+      "m3u"
+    ],
+    "mimeTypes": [
+      "audio/mpegurl",
+      "audio/x-mpegurl",
+      "application/mpegurl"
+    ],
+    "label": "M3U playlist",
+    "defaultEnabled": true,
+    "manifest": true,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "stream.dash",
+    "group": "dash",
+    "extensions": [
+      "mpd"
+    ],
+    "mimeTypes": [
+      "application/dash+xml"
+    ],
+    "label": "DASH manifest",
+    "defaultEnabled": true,
+    "manifest": true,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "stream.smooth",
+    "group": "stream",
+    "extensions": [
+      "ism",
+      "isml"
+    ],
+    "mimeTypes": [
+      "application/vnd.ms-sstr+xml"
+    ],
+    "label": "Smooth Streaming manifest",
+    "defaultEnabled": true,
+    "manifest": true,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "stream.hds",
+    "group": "stream",
+    "extensions": [
+      "f4m"
+    ],
+    "mimeTypes": [
+      "application/f4m+xml"
+    ],
+    "label": "Adobe HDS manifest",
+    "defaultEnabled": true,
+    "manifest": true,
+    "segment": false,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": [
+      "legacy"
+    ]
+  },
+  {
+    "id": "segment.fmp4",
+    "group": "segment",
+    "extensions": [
+      "m4s",
+      "cmfv",
+      "cmfa"
+    ],
+    "mimeTypes": [
+      "video/iso.segment",
+      "audio/iso.segment"
+    ],
+    "label": "fMP4/CMAF segment",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": true,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "segment.partial",
+    "group": "segment",
+    "extensions": [
+      "part"
+    ],
+    "mimeTypes": [],
+    "label": "Low-latency partial segment",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": true,
+    "companion": false,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "subtitle.webvtt",
+    "group": "subtitle",
+    "extensions": [
+      "vtt"
+    ],
+    "mimeTypes": [
+      "text/vtt"
+    ],
+    "label": "WebVTT subtitles",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "subtitle.srt",
+    "group": "subtitle",
+    "extensions": [
+      "srt"
+    ],
+    "mimeTypes": [
+      "application/x-subrip"
+    ],
+    "label": "SRT subtitles",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "subtitle.ttml",
+    "group": "subtitle",
+    "extensions": [
+      "ttml",
+      "dfxp"
+    ],
+    "mimeTypes": [
+      "application/ttml+xml"
+    ],
+    "label": "TTML/DFXP subtitles",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "subtitle.sami",
+    "group": "subtitle",
+    "extensions": [
+      "smi",
+      "sami"
+    ],
+    "mimeTypes": [
+      "application/smil"
+    ],
+    "label": "SAMI subtitles",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "subtitle.ass",
+    "group": "subtitle",
+    "extensions": [
+      "ass",
+      "ssa"
+    ],
+    "mimeTypes": [],
+    "label": "ASS/SSA subtitles",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "subtitle.lyrics",
+    "group": "subtitle",
+    "extensions": [
+      "lrc",
+      "sbv"
+    ],
+    "mimeTypes": [],
+    "label": "Lyrics/caption text",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.jpeg",
+    "group": "image",
+    "extensions": [
+      "jpg",
+      "jpeg",
+      "jfif",
+      "pjpeg",
+      "pjp"
+    ],
+    "mimeTypes": [
+      "image/jpeg"
+    ],
+    "label": "JPEG image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.png",
+    "group": "image",
+    "extensions": [
+      "png"
+    ],
+    "mimeTypes": [
+      "image/png"
+    ],
+    "label": "PNG image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.webp",
+    "group": "image",
+    "extensions": [
+      "webp"
+    ],
+    "mimeTypes": [
+      "image/webp"
+    ],
+    "label": "WebP image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.avif",
+    "group": "image",
+    "extensions": [
+      "avif"
+    ],
+    "mimeTypes": [
+      "image/avif"
+    ],
+    "label": "AVIF image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.gif",
+    "group": "image",
+    "extensions": [
+      "gif"
+    ],
+    "mimeTypes": [
+      "image/gif"
+    ],
+    "label": "GIF image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.apng",
+    "group": "image",
+    "extensions": [
+      "apng"
+    ],
+    "mimeTypes": [
+      "image/apng"
+    ],
+    "label": "APNG image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.svg",
+    "group": "image",
+    "extensions": [
+      "svg"
+    ],
+    "mimeTypes": [
+      "image/svg+xml"
+    ],
+    "label": "SVG image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "image.bmp",
+    "group": "image",
+    "extensions": [
+      "bmp"
+    ],
+    "mimeTypes": [
+      "image/bmp",
+      "image/x-ms-bmp"
+    ],
+    "label": "BMP image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": [
+      "legacy"
+    ]
+  },
+  {
+    "id": "image.ico",
+    "group": "image",
+    "extensions": [
+      "ico",
+      "cur"
+    ],
+    "mimeTypes": [
+      "image/vnd.microsoft.icon",
+      "image/x-icon"
+    ],
+    "label": "Icon image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": [
+      "low-priority"
+    ]
+  },
+  {
+    "id": "image.tiff",
+    "group": "image",
+    "extensions": [
+      "tif",
+      "tiff"
+    ],
+    "mimeTypes": [
+      "image/tiff"
+    ],
+    "label": "TIFF image",
+    "defaultEnabled": true,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": [
+      "professional"
+    ]
+  },
+  {
+    "id": "metadata.json",
+    "group": "metadata",
+    "extensions": [
+      "json"
+    ],
+    "mimeTypes": [],
+    "label": "Media metadata JSON",
+    "defaultEnabled": false,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  },
+  {
+    "id": "metadata.xml",
+    "group": "metadata",
+    "extensions": [
+      "xml"
+    ],
+    "mimeTypes": [],
+    "label": "Media metadata XML",
+    "defaultEnabled": false,
+    "manifest": false,
+    "segment": false,
+    "companion": true,
+    "canConvertToMp4": false,
+    "notes": []
+  }
+]
