@@ -1,8 +1,12 @@
 # Media Scout Downloader
 
+[![CI](https://github.com/NouraldinFarge/media-scout-downloader/actions/workflows/ci.yml/badge.svg)](https://github.com/NouraldinFarge/media-scout-downloader/actions/workflows/ci.yml)
+[![Browser smoke](https://github.com/NouraldinFarge/media-scout-downloader/actions/workflows/browser-e2e.yml/badge.svg)](https://github.com/NouraldinFarge/media-scout-downloader/actions/workflows/browser-e2e.yml)
+[![CodeQL](https://github.com/NouraldinFarge/media-scout-downloader/actions/workflows/codeql.yml/badge.svg)](https://github.com/NouraldinFarge/media-scout-downloader/actions/workflows/codeql.yml)
+
 Media Scout Downloader is a local-first Chrome Manifest V3 extension for finding and downloading media that the active page has already exposed to the browser. It favors a clear recommendation in the popup, keeps advanced evidence in a named side-panel workspace, and fails closed when a path would require bypassing access controls.
 
-Version 3.7.13 is a private release-readiness candidate. P0 provenance/privacy/security review is complete; the P1 browser, accessibility, performance, CI, and artifact gates in [`TEST_PLAN.md`](TEST_PLAN.md) must still pass before public publication.
+> **Repository status:** The `3.7.13` source is public for review under the MIT License. It remains an unreleased prerelease: there is no Chrome Web Store listing or supported public binary, and the manual Chrome/Brave, assistive-technology, artifact, and release-approval gates in [`TEST_PLAN.md`](TEST_PLAN.md) remain open.
 
 ## What it does
 
@@ -90,6 +94,8 @@ npm run build
 `npm run build` creates `dist/media-scout-downloader/` with only the packaged manifest, source, and assets. `dist/` and generated archives are ignored.
 
 Manual browser coverage remains mandatory because Chrome extension APIs, browser prompts, responsive side-panel layouts, accessibility APIs, and media fixtures cannot be fully represented by the Node gate. Follow [`TEST_PLAN.md`](TEST_PLAN.md) and [`TESTING.md`](TESTING.md).
+
+The public source tree is backed by green GitHub CI and CodeQL runs, plus an exact-artifact Playwright Chromium smoke run on the merged pull request. Those automated checks are engineering evidence, not a claim of Chrome Web Store approval, broad browser compatibility, accessibility conformance, or release readiness.
 
 ## Privacy and security
 

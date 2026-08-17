@@ -2,11 +2,11 @@
 
 # Chrome Web Store disclosure package
 
-Candidate: Media Scout Downloader 3.7.13 private candidate
+Candidate: Media Scout Downloader `3.7.13` public-source prerelease candidate
 
 Prepared: 2026-08-17
 
-Status: local draft only; no dashboard item, upload, submission, or publication action is authorized.
+Status: local draft only; public source availability does not authorize a dashboard item, binary upload, store submission, or publication claim.
 
 ## Current primary-source basis
 

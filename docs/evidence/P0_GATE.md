@@ -1,10 +1,12 @@
-# P0 publication gate — private candidate 3.7.13
+# P0 publication gate — historical private-stage checkpoint for 3.7.13
 
 Assessment date: 2026-08-17 (America/Chicago)
 
 Candidate source commit: `91c070412f844c9c541a4b8622f0efd70e3f20c9` (tree `33e3fff6c3505be36e287d50e877aea40946eae7`)
 
-Result: **PASS — P1 engineering/release-readiness work may begin. Public publication remains gated by P1 and P2.**
+> **Historical record:** This gate predates public source visibility. The repository is now public, while supported-binary, store, installed-browser, accessibility, artifact, and approval gates remain separate.
+
+Historical result: **PASS — P1 engineering/release-readiness work could begin.** Public source visibility was still gated at this checkpoint and has since been completed; supported binary, store, installed-browser, accessibility, and approval gates remain separate.
 
 The known high-severity report-preview privacy defect is fixed, no unresolved critical/high product security or privacy finding was identified by the completed local P0 review, owner provenance is recorded, and the project is MIT-licensed. The first CodeQL run exposed eight maintainability findings; all eight were fixed, and the exact follow-up commit produced zero findings from the security-and-quality suite.
 
@@ -27,7 +29,7 @@ The known high-severity report-preview privacy defect is fixed, no unresolved cr
 
 ## P0 blockers
 
-None. P1 still requires conventional quality tooling, coverage, controlled browser fixtures, exact Chrome/Brave testing, accessibility/NVDA review, performance evidence, remote CI, and immutable release artifacts. P2 and public publication remain blocked until those later gates pass.
+None at this checkpoint. P1 then required conventional quality tooling, coverage, controlled browser fixtures, exact Chrome/Brave testing, accessibility/NVDA review, performance evidence, remote CI, and immutable release artifacts. The current status and the subset that remain open are tracked in [`RELEASE_READINESS_LOG.md`](RELEASE_READINESS_LOG.md).
 
 ## Claims supportable now in private review only
 
@@ -36,7 +38,7 @@ None. P1 still requires conventional quality tooling, coverage, controlled brows
 - Gitleaks 8.30.0 and Semgrep Community 1.173.0 completed the exact scopes recorded in the ledger without a finding.
 - CodeQL CLI 2.26.3 analyzed the exact P0 source commit with the JavaScript security-and-quality suite and returned zero findings after the initial quality cleanup.
 - The P0 npm dependency tree is empty and npm reported zero dependency vulnerabilities.
-- The project is MIT-licensed and remains a private staging candidate with no tag/release/store publication.
+- At this checkpoint, the MIT-licensed project remained a private staging candidate with no tag, release, or store publication.
 - The owner attests that they fully created the extension; the audit records this as current source/remux/icon origin evidence with explicit limits.
 
 These are bounded evidence statements, not public-release approval.
@@ -47,4 +49,4 @@ Publicly released; Chrome Web Store published/approved; production-ready; secure
 
 ## External-action status
 
-The owner approved the MIT change, repository/version/author metadata, private staging-repository creation, and first push. The public-GitHub outcome is requested, but visibility will not change until the P1/P2 publication gate passes. No PR, tag, GitHub Release, store submission, profile pin, portfolio deployment, résumé edit, LinkedIn/Indeed edit, or other external publication is implied by this P0 pass.
+At this checkpoint, the owner approved the MIT change, repository/version/author metadata, private staging-repository creation, and first push. Public visibility was not yet authorized by this record. The later public-source transition is documented separately and does not imply a tag, GitHub Release, store submission, supported binary, or professional-profile claim.

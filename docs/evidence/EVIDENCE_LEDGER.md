@@ -2,6 +2,8 @@
 
 Current P0 source commit: Media Scout Downloader 3.7.13 at `91c070412f844c9c541a4b8622f0efd70e3f20c9` (tree `33e3fff6c3505be36e287d50e877aea40946eae7`)
 
+> **Status note:** Rows below preserve the repository state observed at each dated checkpoint, including the original private-staging phase. The source repository is now public. Historical visibility statements are evidence, not current status; current release boundaries are recorded in [`RELEASE_READINESS_LOG.md`](RELEASE_READINESS_LOG.md).
+
 Ledger rule: rows bound to `21cd0ca` preserve the original report/privacy P0 checkpoint. MIT and CodeQL rows EV-033 onward record the current P0 source and supersede conflicting earlier states. Any later source/runtime change supersedes affected results. A passing local row is not remote CI, browser, store, legal, or publication evidence.
 
 | ID | Candidate claim | Requirement | Verification method | Exact environment/tool version | Commit SHA | Artifact/hash | Result | Date | Reviewer | Public wording allowed |
@@ -51,7 +53,7 @@ Ledger rule: rows bound to `21cd0ca` preserve the original report/privacy P0 che
 | `npm run lint` | Actual implementation | Script is a repository invariant scanner, not conventional ESLint. | P1 must add conventional lint or rename to `invariants:check`; public “linted” wording forbidden meanwhile. |
 | `npm run typecheck` | Actual implementation | Script checks JavaScript syntax/imports, not compile-time types. | P1 must adopt `tsc --checkJs`/equivalent or rename to `syntax:check`; “typed/typechecked” wording forbidden meanwhile. |
 | `.github/workflows/ci.yml` | Evidence | Workflow exists but no remote/CI run exists because there is no remote. | Keep “remote-ready workflow” wording only until an exact commit runs remotely. |
-| `LICENSE.md`, package metadata, README, provenance | Open-source language | Owner approved the standard MIT License; project-specific code/assets are open source even while staging remains private. | Use “open source under MIT” with the separate authorized-media/third-party-content limitation; do not call the candidate publicly released before publication. |
+| `LICENSE.md`, package metadata, README, provenance | Open-source language | The owner approved the standard MIT License and the source repository is public; supported binary and store distribution remain separate. | Use “public source under MIT” with the authorized-media/third-party-content limitation; do not imply a supported binary, store listing, or completed release gate. |
 | Manifest minimum Chrome 114 | Browser compatibility claims | API minimum is declared, but no Chrome 114/current Chrome behavior was tested here. | Treat as manifest floor, not compatibility evidence; run exact P1 matrix. |
 | Private design DOCX | Product/README claims | DOCX targets older 3.6.20 and includes aspirational/private material. | Implementation/tests govern claims; DOCX never serves as proof or public asset. |
 | Report UI, `PRIVACY.md`, README, TEST_PLAN | 3.7.12 historical audit/privacy wording | Current 3.7.13 defaults omit title/filename and hash host/path; historical documents describe earlier report shape. | Current user-facing docs updated; preserve dated audit as historical and do not use its report claims for 3.7.13. |

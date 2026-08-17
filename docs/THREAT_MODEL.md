@@ -1,6 +1,6 @@
 # Threat model and data-flow inventory
 
-Scope: Media Scout Downloader 3.7.13 private candidate
+Scope: Media Scout Downloader `3.7.13` public-source prerelease candidate
 
 Review date: 2026-08-17
 

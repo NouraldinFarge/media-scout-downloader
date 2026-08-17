@@ -1,10 +1,12 @@
-# Security and privacy review — private candidate 3.7.13
+# Security and privacy review — historical private-stage checkpoint for 3.7.13
 
 Review date: 2026-08-17 (America/Chicago)
 
 Environment: Windows 11 Pro 10.0.26100 (64-bit), Node.js 24.19.0, npm 11.16.0, Git 2.55.0.windows.3
 
 Candidate source binding: `91c070412f844c9c541a4b8622f0efd70e3f20c9` (tree `33e3fff6c3505be36e287d50e877aea40946eae7`). Quality, build, dependency, Git-integrity, Gitleaks, Semgrep, and CodeQL checks were rerun for this source commit.
+
+> The source is now public. This bounded P0 record is retained for traceability and is not a supported-binary, store, browser-compatibility, accessibility, or security guarantee.
 
 Result: **No unresolved critical or high-severity product security/privacy finding was identified in the completed P0 review.** The corrected report preview closes the known high-severity privacy/UX finding, and the final exact-commit CodeQL security-and-quality analysis returned zero results. This is not a claim that the extension is secure or vulnerability-free. Clean-profile browser testing, future-asset provenance, and final artifact review remain later gates.
 

@@ -1,6 +1,6 @@
 # Source, asset, fixture, and AI provenance
 
-Status: private release candidate 3.7.13, reviewed 2026-08-17. Project owner and author: Nouraldin Farge.
+Status: public-source prerelease candidate `3.7.13`, reviewed 2026-08-17. This status does not imply a supported binary or Chrome Web Store release. Project owner and author: Nouraldin Farge.
 
 ## Distribution and license status
 
@@ -19,7 +19,7 @@ The inventory is evidence of what was reviewed. The owner stated on 2026-08-17, 
 - The application source was supplied in the owner's private repository snapshot. The owner stated that they fully created the extension. The current candidate also includes the reviewed AI-assisted release-readiness changes disclosed below.
 - `src/content/mp4-remuxer.js` is a repository-contained MPEG-TS (H.264/AAC) to MP4 repackaging implementation. It imports no third-party library and contains no third-party copyright header or attribution notice.
 - A limited public exact-phrase search on 2026-08-17 for distinctive function/error/comment strings from the remuxer found no matching source. That search is not exhaustive and is not proof of originality or non-infringement.
-- The owner creation statement resolves the current P0 source-origin question for the application and remux implementation. No copied/adapted exception was supplied. If that is incomplete, the owner must correct the attestation and identify any algorithm, snippet, specification text, or prior source that requires attribution before publication.
+- The owner creation statement resolves the current P0 source-origin question for the application and remux implementation. No copied/adapted exception was supplied. If that is incomplete, the owner must correct the attestation and identify any algorithm, snippet, specification text, or prior source that requires attribution before supported distribution.
 - Standard container/codec concepts, box names, and byte-layout operations are interoperability facts; this audit does not make a legal conclusion about protectability or implementation origin.
 
 ## Icons and visual assets
@@ -63,7 +63,7 @@ No font file is bundled. CSS names `Inter` first and then uses platform/system f
 
 AI coding agents assisted with research, implementation, testing, and iteration. The owner set requirements and architecture, reviews and validates changes, defines safety, licensing, privacy, and authorization boundaries, and retains final responsibility for published claims and releases.
 
-AI output is treated as untrusted draft material: changes are diff-reviewed, relevant tests are run, generated UI/artifacts are inspected, and claims remain private until they map to immutable passing evidence. The presence of human review does not itself establish copyright ownership of generated or pre-existing material.
+AI output is treated as untrusted draft material: changes are diff-reviewed, relevant tests are run, generated UI/artifacts are inspected, and claims stay out of release and professional-profile surfaces until they map to immutable passing evidence. The presence of human review does not itself establish copyright ownership of generated or pre-existing material.
 
 ## Recorded owner attestation and continuing obligations
 
@@ -71,4 +71,4 @@ The owner stated on 2026-08-17: “I fully created this extension.” `docs/evid
 
 The owner separately approved changing the project to the MIT License on 2026-08-17. This attestation resolves the current P0 owner-origin blocker, but it does not establish an independent legal conclusion or authorize rights in third-party content.
 
-Every future browser fixture, screenshot, diagram, social image, demo asset, media file, dependency, documentation excerpt, or copied/adapted item still needs an exact source/license record and any required notice. The owner must correct the attestation before publication if an unrecorded exception exists.
+Every future browser fixture, screenshot, diagram, social image, demo asset, media file, dependency, documentation excerpt, or copied/adapted item still needs an exact source/license record and any required notice. The owner must correct the attestation before distributing or promoting material affected by an unrecorded exception.

@@ -1,12 +1,14 @@
-# Deep release-readiness audit — private candidate 3.7.13
+# Deep release-readiness audit — historical private-stage checkpoint for 3.7.13
 
 Review date: 2026-08-17 (America/Chicago)
 
 Scope: supplied repository state, current 3.7.13 P0 changes, private design-plan input, professional-presence audit, privacy/security controls, permissions, tests, build output, source/assets/provenance, documentation, and claim consistency.
 
+> **Historical record:** This file preserves the P0 assessment before the repository became public. The source is now public; this record does not establish a supported binary, Chrome Web Store release, or completion of the remaining manual gates. See [`RELEASE_READINESS_LOG.md`](RELEASE_READINESS_LOG.md) for current status.
+
 Current P0 source binding: `91c070412f844c9c541a4b8622f0efd70e3f20c9` (tree `33e3fff6c3505be36e287d50e877aea40946eae7`).
 
-Status: **P0 passes.** The known high-severity report-preview defect is fixed, the local P0 engineering gates pass, the owner's creation attestation is recorded, the project is MIT-licensed, and the exact-candidate CodeQL rerun returned zero findings after eight initial quality findings were fixed. P1 may begin; P2 and public publication remain gated by P1.
+Status at this checkpoint: **P0 passed.** The known high-severity report-preview defect was fixed, the local P0 engineering gates passed, the owner's creation attestation was recorded, the project was MIT-licensed, and the exact-candidate CodeQL rerun returned zero findings after eight initial quality findings were fixed. The later public-source transition did not convert this bounded result into binary, store, browser, accessibility, or professional-profile approval.
 
 Severity describes release/publication risk, not a claim that exploitation occurred. “Pass locally” never means Chrome/Brave, remote CI, store, legal, or public-release evidence.
 
@@ -44,4 +46,4 @@ Severity describes release/publication risk, not a claim that exploitation occur
 
 ## Publication consequence
 
-MIT/open-source licensing and the bounded exact-commit CodeQL result are now supportable. No current result yet supports public-release, store, production-ready, browser-compatibility, accessibility-compliance, performance, coverage, remote-CI, or recruiter-surface claims. The staging repository and draft materials must remain private until P1/P2 explicitly pass and the authorized public transition occurs.
+At this checkpoint, MIT/open-source licensing and the bounded exact-commit CodeQL result were supportable, while public-release, store, production-ready, browser-compatibility, accessibility-compliance, performance, coverage, remote-CI, and recruiter-surface claims were not. The repository later became public source; the unsupported claims and manual release gates remain governed by the current readiness log.
