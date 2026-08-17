@@ -1,5 +1,4 @@
-import { DEFAULT_ENABLED_FILE_TYPES, EXTENSION_MIME_HINTS_FROM_REGISTRY, MEDIA_EXTENSION_MAP, MEDIA_GROUPS } from './media-type-registry.js';
-export const EXTENSION_NAME = 'Media Scout Downloader';
+import { DEFAULT_ENABLED_FILE_TYPES, MEDIA_EXTENSION_MAP, MEDIA_GROUPS } from './media-type-registry.js';
 
 export const MESSAGE_TYPES = Object.freeze({
   GET_ACTIVE_TAB_STATE: 'GET_ACTIVE_TAB_STATE',
@@ -50,8 +49,6 @@ export const MEDIA_TYPES = Object.freeze({
 });
 
 export const MEDIA_EXTENSIONS = Object.freeze(MEDIA_EXTENSION_MAP);
-
-export const EXTENSION_MIME_HINTS = Object.freeze(EXTENSION_MIME_HINTS_FROM_REGISTRY);
 
 export const DOWNLOAD_STATUSES = Object.freeze({
   DETECTED: 'detected',
@@ -194,7 +191,6 @@ export const PROTECTED_QUERY_HINTS = Object.freeze([
 export const MAX_FILENAME_LENGTH = 180;
 export const MAX_PARALLEL_MIN = 1;
 export const MAX_PARALLEL_MAX = 6;
-export const POPUP_WIDTH_PX = 380;
 export const SEGMENT_PARALLELISM_MIN = 1;
 export const SEGMENT_PARALLELISM_MAX = 16;
 export const SEGMENT_RETRY_LIMIT_MIN = 0;

@@ -1,34 +1,18 @@
-import { EXTENSION_MIME_HINTS, MEDIA_EXTENSIONS, MEDIA_TYPES } from './constants.js';
+import { MEDIA_EXTENSIONS, MEDIA_TYPES } from './constants.js';
 import { registryEntryForExtension, registryEntryForMime } from './media-type-registry.js';
 
 export function nowISO() {
   return new Date().toISOString();
 }
 
-export function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function clamp(value, min, max) {
-  const number = Number(value);
-  if (Number.isNaN(number)) return min;
-  return Math.min(max, Math.max(min, number));
-}
-
-export function safeJsonParse(text, fallback = null) {
-  try {
-    return JSON.parse(text);
-  } catch (_error) {
-    return fallback;
-  }
-}
-
 export function normalizeUrl(rawUrl, baseUrl = undefined) {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
+  if (rawUrl.length > 4096 || (typeof baseUrl === 'string' && baseUrl.length > 4096)) return '';
   try {
     const url = new URL(rawUrl, baseUrl);
     url.hash = '';
-    return url.toString();
+    const normalized = url.toString();
+    return normalized.length <= 4096 ? normalized : '';
   } catch (_error) {
     return '';
   }
@@ -141,27 +125,7 @@ export function formatBytes(bytes) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-export function debounce(fn, waitMs) {
-  let timer = null;
-  return (...args) => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), waitMs);
-  };
-}
-
-export function uniqueBy(items, keyFn) {
-  const seen = new Set();
-  const result = [];
-  for (const item of items) {
-    const key = keyFn(item);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(item);
-  }
-  return result;
-}
-
-export async function chromeCall(fn) {
+async function chromeCall(fn) {
   return new Promise((resolve, reject) => {
     try {
       fn((result) => {

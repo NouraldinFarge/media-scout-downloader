@@ -1,17 +1,19 @@
 import {
   DEFAULT_SETTINGS,
+  DUPLICATE_BEHAVIORS,
   ERROR_CATEGORIES,
   MEDIA_EXTENSIONS,
   MESSAGE_TYPES,
   HLS_OUTPUT_METHODS,
   IMPLEMENTED_HLS_OUTPUT_METHODS,
   HLS_VARIANT_PREFERENCES,
+  HLS_WORK_MODES,
   PROTECTED_QUERY_HINTS,
   RETRY_BLOCKED_CATEGORIES
 } from './constants.js';
 import { createStructuredError, getUrlExtension, normalizeUrl } from './utils.js';
 
-export function isSupportedMediaExtension(extension) {
+function isSupportedMediaExtension(extension) {
   return Boolean(MEDIA_EXTENSIONS[String(extension || '').toLowerCase()]);
 }
 
@@ -101,19 +103,19 @@ export function validateMessage(message) {
     case MESSAGE_TYPES.DOM_MEDIA_FOUND:
       return Array.isArray(message.items) && message.items.length <= 500 && message.items.every(isSafeScanItem);
     case MESSAGE_TYPES.CONVERT_M3U8_TO_MP4:
-      return isNonEmptyString(message.url, 4096) && isOptionalImplementedHlsMethod(message.hlsOutputMethod);
+      return isNonEmptyString(message.url, 4096) && isHttpUrl(message.url) && isOptionalBoundedString(message.filename, 240) && isOptionalImplementedHlsMethod(message.hlsOutputMethod);
     case MESSAGE_TYPES.SETTINGS_SAVE:
-      return !message.settings || isSafeSettingsPayload(message.settings);
+      return Boolean(message.settings) && isSafeSettingsPayload(message.settings);
     case MESSAGE_TYPES.GENERATE_REPORT:
       return message.includeSensitiveUrls == null || typeof message.includeSensitiveUrls === 'boolean';
     case MESSAGE_TYPES.REQUEST_SITE_ACCESS:
-      return !message.origin || /^https?:\/\//i.test(String(message.origin));
+      return message.origin == null || (isNonEmptyString(message.origin, 2048) && /^https?:\/\//i.test(message.origin));
     case MESSAGE_TYPES.START_EPISODE_BATCH_DOWNLOADS:
       return (!message.episodes || (Array.isArray(message.episodes) && message.episodes.length <= 120 && message.episodes.every(isSafeEpisodeRequest))) && isOptionalImplementedHlsMethod(message.hlsOutputMethod);
     case MESSAGE_TYPES.HLS_MERGE_DOWNLOAD_REQUEST:
-      return isNonEmptyString(message.taskId) && isNonEmptyString(message.playlistUrl, 4096) && isOptionalImplementedHlsMethod(message.hlsOutputMethod) && isOptionalEnum(message.hlsVariantPreference, HLS_VARIANT_PREFERENCES) && isOptionalFiniteNumber(message.bandwidth) && (!message.resolution || String(message.resolution).length <= 32);
+      return isNonEmptyString(message.taskId) && isNonEmptyString(message.playlistUrl, 4096) && isHttpUrl(message.playlistUrl) && isOptionalImplementedHlsMethod(message.hlsOutputMethod) && isOptionalEnum(message.hlsVariantPreference, HLS_VARIANT_PREFERENCES) && isOptionalFiniteNumber(message.bandwidth) && isOptionalBoundedString(message.resolution, 32);
     case MESSAGE_TYPES.BLOB_DOWNLOAD_REQUEST:
-      return isNonEmptyString(message.url, 4096) && (!message.filename || String(message.filename).length <= 240);
+      return isNonEmptyString(message.url, 4096) && isBlobUrl(message.url) && isOptionalBoundedString(message.filename, 240);
     case MESSAGE_TYPES.CANCEL_HLS_TASK:
       return isNonEmptyString(message.taskId);
     case MESSAGE_TYPES.PAUSE_QUEUE:
@@ -132,12 +134,20 @@ function isNonEmptyString(value, maxLength = 512) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength;
 }
 
+function isOptionalBoundedString(value, maxLength) {
+  return value == null || value === '' || (typeof value === 'string' && value.length <= maxLength);
+}
+
 function isSafeProgressMessage(message = {}) {
   const percent = Number(message.percent);
   if (message.phase != null && String(message.phase).length > 64) return false;
   if (message.detail != null && String(message.detail).length > 600) return false;
-  if (message.loaded != null && !Number.isFinite(Number(message.loaded))) return false;
-  if (message.total != null && !Number.isFinite(Number(message.total))) return false;
+  if (message.updatedAt != null && String(message.updatedAt).length > 40) return false;
+  for (const key of ['loaded', 'total', 'bytes', 'workers', 'activeWorkers', 'retries', 'averageBytesPerSecond', 'peakConcurrency', 'lastSegmentIndex', 'workerIndex']) {
+    if (message[key] == null) continue;
+    const value = Number(message[key]);
+    if (!Number.isFinite(value) || value < 0) return false;
+  }
   return message.percent == null || (Number.isFinite(percent) && percent >= 0 && percent <= 100);
 }
 
@@ -197,6 +207,7 @@ function isOptionalFiniteNumber(value) {
 function isSafeScanItem(item = {}) {
   if (!item || typeof item !== 'object') return false;
   if (!isNonEmptyString(item.url, 4096)) return false;
+  if (!isSafeUrlScheme(item.url)) return false;
   const stringLimits = {
     source: 80,
     type: 160,
@@ -210,9 +221,9 @@ function isSafeScanItem(item = {}) {
     if (item[key] != null && String(item[key]).length > limit) return false;
   }
   for (const key of ['transferSize', 'encodedBodySize', 'decodedBodySize', 'mediaDuration', 'performanceStartTime']) {
-    if (item[key] != null && !Number.isFinite(Number(item[key]))) return false;
+    if (item[key] != null && (!Number.isFinite(Number(item[key])) || Number(item[key]) < 0)) return false;
   }
-  if (item.frameId != null && !Number.isInteger(Number(item.frameId))) return false;
+  if (item.frameId != null && (!Number.isInteger(Number(item.frameId)) || Number(item.frameId) < 0)) return false;
   return isOptionalSmallObject(item.mediaInfo) && isOptionalSmallObject(item.resourceInfo);
 }
 
@@ -254,14 +265,22 @@ function isSafeSettingsPayload(settings = {}) {
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return false;
   const allowed = new Set(Object.keys(DEFAULT_SETTINGS));
   if (Object.keys(settings).some((key) => !allowed.has(key))) return false;
+  const booleanKeys = new Set(['showManualM3u8Converter', 'includeSensitiveUrlsInReports', 'notifications', 'debugLogs']);
+  const numericKeys = new Set(['maxParallelDownloads', 'segmentParallelism', 'segmentRetryLimit', 'queueHistoryRetentionDays', 'episodeBatchScanParallelism', 'confirmLargeEpisodeBatchThreshold']);
   for (const [key, value] of Object.entries(settings)) {
-    if (value == null) continue;
+    if (value == null) return false;
     if (key === 'enabledFileTypes') {
       if (!isSafeEnabledFileTypesPayload(value)) return false;
       continue;
     }
-    if (key === 'filenameTemplate' && String(value).length > 240) return false;
-    if (key === 'preferredSubfolder' && String(value).length > 200) return false;
+    if (booleanKeys.has(key) && typeof value !== 'boolean') return false;
+    if (numericKeys.has(key) && (typeof value !== 'number' || !Number.isFinite(value))) return false;
+    if (key === 'hlsOutputMethod' && !IMPLEMENTED_HLS_OUTPUT_METHODS.includes(value)) return false;
+    if (key === 'hlsWorkMode' && !Object.values(HLS_WORK_MODES).includes(value)) return false;
+    if (key === 'hlsVariantPreference' && !Object.values(HLS_VARIANT_PREFERENCES).includes(value)) return false;
+    if (key === 'duplicateBehavior' && !Object.values(DUPLICATE_BEHAVIORS).includes(value)) return false;
+    if (key === 'filenameTemplate' && (typeof value !== 'string' || value.length > 240)) return false;
+    if (key === 'preferredSubfolder' && (typeof value !== 'string' || value.length > 200)) return false;
     if (typeof value === 'object') return false;
   }
   return true;

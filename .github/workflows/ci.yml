@@ -28,5 +28,8 @@ jobs:
       - name: Restore locked metadata
         run: npm ci
 
-      - name: Run regression gate
-        run: npm test
+      - name: Run repository quality gate
+        run: npm run check
+
+      - name: Build extension staging directory
+        run: npm run build

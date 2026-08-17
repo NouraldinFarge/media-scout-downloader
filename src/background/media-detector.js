@@ -24,6 +24,14 @@ import {
   validateMediaUrl
 } from '../shared/validators.js';
 
+const MAX_MANIFEST_INSPECTIONS_PER_SCAN = 8;
+const MAX_MANIFEST_TEXT_BYTES = 4 * 1024 * 1024;
+const MANIFEST_FETCH_TIMEOUT_MS = 8000;
+const MAX_PARSED_HLS_VARIANTS = 200;
+const MAX_PARSED_HLS_AUDIO_RENDITIONS = 100;
+const MAX_PARSED_HLS_SEGMENTS = 6000;
+const MAX_PARSED_DASH_REPRESENTATIONS = 500;
+
 export class MediaDetector {
   constructor({ tabMediaStore, diagnostics, getSettings }) {
     this.tabMediaStore = tabMediaStore;
@@ -52,6 +60,10 @@ export class MediaDetector {
     this.scopedTabs.delete(tabId);
   }
 
+  unScopeAll() {
+    this.scopedTabs.clear();
+  }
+
   isScopedTab(tabId) {
     return this.scopedTabs.has(tabId);
   }
@@ -60,12 +72,14 @@ export class MediaDetector {
     if (!Number.isInteger(tab?.id)) return [];
     this.scopeTab(tab.id);
     this.tabMediaStore.setTabInfo(tab);
+    const tabRevision = this.tabMediaStore.getTabRevision(tab.id);
     const settings = await this.getSettings();
-    const items = [];
-    for (const rawInput of scanResults.slice(0, 500)) {
-      const raw = sanitizeScanResult(rawInput);
-      if (!raw) continue;
-      const item = await this._buildMediaItem({
+    let manifestInspections = 0;
+    const inputs = dedupeSanitizedScanResults(scanResults.slice(0, 500).map(sanitizeScanResult).filter(Boolean));
+    const items = await mapWithConcurrency(inputs, 4, async (raw) => {
+      const manifestLike = isManifestScanResult(raw);
+      const inspectManifest = !manifestLike || manifestInspections++ < MAX_MANIFEST_INSPECTIONS_PER_SCAN;
+      return this._buildMediaItem({
         tab,
         url: raw.url,
         source: raw.source || SOURCES.DOM_SOURCE,
@@ -84,19 +98,21 @@ export class MediaDetector {
         performanceStartTime: raw.performanceStartTime || undefined,
         signedOrExpiringHint: Boolean(raw.signedOrExpiringHint),
         detectionMethods: ['dom-scan']
-      }, settings);
-      if (item) items.push(item);
-    }
-    return this.tabMediaStore.addMany(tab.id, items);
+      }, settings, { inspectManifest });
+    });
+    if (!this.scopedTabs.has(tab.id) || !this.tabMediaStore.isTabRevisionCurrent(tab.id, tabRevision)) return [];
+    return this.tabMediaStore.addMany(tab.id, items.filter(Boolean));
   }
 
   async _handleHeaders(details) {
     if (!this._shouldInspect(details)) return;
+    const tabRevision = this.tabMediaStore.getTabRevision(details.tabId);
     const headers = details.responseHeaders || [];
     const contentType = getHeaderValue(headers, 'content-type');
     const disposition = getHeaderValue(headers, 'content-disposition');
     if (!isLikelyMediaUrl(details.url, contentType) && !/filename=.*\.(mp4|m4v|mov|webm|ogv|mpeg|mpg|ts|m2ts|mkv|avi|3gp|flv|f4v|wmv|asf|mxf|mp3|m4a|aac|wav|ogg|opus|flac|m3u8|m3u|mpd|f4m|vtt|srt|ttml|dfxp|ass|ssa|jpg|jpeg|png|webp|avif|gif|svg|bmp|ico|tif|tiff)/i.test(disposition)) return;
-    const tab = this.tabMediaStore.getTabState(details.tabId).tab;
+    const storedTab = this.tabMediaStore.getTabState(details.tabId).tab;
+    const tab = { ...storedTab, id: details.tabId };
     const settings = await this.getSettings();
     const item = await this._buildMediaItem({
       tab,
@@ -108,13 +124,17 @@ export class MediaDetector {
       responseHeaders: buildSafeResponseHeaderHints(headers),
       detectionMethods: ['webRequest-headers']
     }, settings);
-    if (item) this.tabMediaStore.addMedia(details.tabId, item);
+    if (item && this._shouldInspect(details) && this.tabMediaStore.isTabRevisionCurrent(details.tabId, tabRevision)) {
+      this.tabMediaStore.addMedia(details.tabId, item);
+    }
   }
 
   async _handleCompleted(details) {
     if (!this._shouldInspect(details)) return;
+    const tabRevision = this.tabMediaStore.getTabRevision(details.tabId);
     if (!isLikelyMediaUrl(details.url, '')) return;
-    const tab = this.tabMediaStore.getTabState(details.tabId).tab;
+    const storedTab = this.tabMediaStore.getTabState(details.tabId).tab;
+    const tab = { ...storedTab, id: details.tabId };
     const settings = await this.getSettings();
     const item = await this._buildMediaItem({
       tab,
@@ -122,14 +142,16 @@ export class MediaDetector {
       source: SOURCES.NETWORK,
       detectionMethods: ['webRequest-completed']
     }, settings);
-    if (item) this.tabMediaStore.addMedia(details.tabId, item);
+    if (item && this._shouldInspect(details) && this.tabMediaStore.isTabRevisionCurrent(details.tabId, tabRevision)) {
+      this.tabMediaStore.addMedia(details.tabId, item);
+    }
   }
 
   _shouldInspect(details) {
     return details?.tabId >= 0 && this.scopedTabs.has(details.tabId);
   }
 
-  async _buildMediaItem(input, settings) {
+  async _buildMediaItem(input, settings, { inspectManifest = true } = {}) {
     const normalizedUrl = normalizeUrl(input.url, input.tab?.url);
     if (!normalizedUrl) return null;
     const blobUrl = normalizedUrl.startsWith('blob:');
@@ -152,8 +174,8 @@ export class MediaDetector {
       );
     }
     const item = {
-      id: makeMediaId(input.tab?.id || input.tabId || -1, normalizedUrl, mediaType),
-      tabId: input.tab?.id || input.tabId,
+      id: makeMediaId(input.tab?.id ?? input.tabId ?? -1, normalizedUrl, mediaType),
+      tabId: input.tab?.id ?? input.tabId,
       url: normalizedUrl,
       normalizedUrl,
       source: input.source,
@@ -185,8 +207,14 @@ export class MediaDetector {
       detectedAt: nowISO()
     };
 
-    if (!validationError && mediaType === MEDIA_TYPES.HLS) await this._annotateHls(item, input.tab?.url || '', settings);
-    if (!validationError && mediaType === MEDIA_TYPES.DASH) await this._annotateDash(item, input.tab?.url || '');
+    if (!validationError && mediaType === MEDIA_TYPES.HLS) {
+      if (inspectManifest) await this._annotateHls(item, input.tab?.url || '', settings);
+      else markManifestInspectionDeferred(item, 'hls');
+    }
+    if (!validationError && mediaType === MEDIA_TYPES.DASH) {
+      if (inspectManifest) await this._annotateDash(item, input.tab?.url || '');
+      else markManifestInspectionDeferred(item, 'dash');
+    }
     if (!validationError && [MEDIA_TYPES.STREAM, MEDIA_TYPES.PLAYLIST].includes(mediaType)) {
       item.safetyWarning = 'Streaming manifest/playlist detected. Media Scout can save the manifest file directly, but conversion is currently limited to non-encrypted MPEG-TS HLS (.m3u8).';
     }
@@ -205,9 +233,7 @@ export class MediaDetector {
       return;
     }
     try {
-      const response = await fetch(item.url, { credentials: 'omit', cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
+      const text = await fetchTextWithTimeout(item.url, MANIFEST_FETCH_TIMEOUT_MS);
       const protection = detectHlsProtection(text);
       const hlsInfo = parseHlsInspection(text, item.url);
       item.playlist = { kind: 'hls', encrypted: protection.encrypted, ...hlsInfo.playlist };
@@ -215,6 +241,7 @@ export class MediaDetector {
       item.audioRenditions = hlsInfo.audioRenditions;
       await annotateSelectedHlsVariant(item, settings);
       const protectedHlsUri = findProtectedHlsUri(hlsInfo, item.url) || item.selectedVariant?.protectedHlsUri || null;
+      const structureLimit = hlsStructureLimitReason(item.playlist);
       const requiresSeparateAudioMerge = Boolean(item.playlist?.hasSeparateAudio && item.variants?.length && !item.variants.some(isLikelySelfContainedHlsVariant));
       if (protection.encrypted || item.selectedVariant?.encrypted) {
         item.isProtected = true;
@@ -225,6 +252,10 @@ export class MediaDetector {
         item.status = DOWNLOAD_STATUSES.UNSUPPORTED;
         item.unsupportedReason = `The HLS ${protectedHlsUri.kind} URL appears signed, expiring, or tokenized. Media Scout will not reuse protected HLS component URLs.`;
         item.playlist.protectedUriKind = protectedHlsUri.kind;
+      } else if (structureLimit) {
+        item.isProtected = true;
+        item.status = DOWNLOAD_STATUSES.UNSUPPORTED;
+        item.unsupportedReason = structureLimit;
       } else if (requiresSeparateAudioMerge) {
         item.isProtected = true;
         item.status = DOWNLOAD_STATUSES.UNSUPPORTED;
@@ -248,12 +279,13 @@ export class MediaDetector {
       return;
     }
     try {
-      const response = await fetch(item.url, { credentials: 'omit', cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
+      const text = await fetchTextWithTimeout(item.url, MANIFEST_FETCH_TIMEOUT_MS);
       const protection = detectDashProtection(text);
       item.manifest = { kind: 'dash', encrypted: protection.encrypted };
-      item.representations = parseDashRepresentations(text);
+      const representationResult = parseDashRepresentations(text);
+      item.representations = representationResult.items;
+      item.manifest.representationCount = representationResult.count;
+      item.manifest.representationsTruncated = representationResult.count > representationResult.items.length;
       if (protection.encrypted) {
         item.isProtected = true;
         item.status = DOWNLOAD_STATUSES.ENCRYPTED;
@@ -267,13 +299,53 @@ export class MediaDetector {
   }
 }
 
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, concurrency), items.length) }, () => worker()));
+  return results;
+}
+
+function dedupeSanitizedScanResults(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.url}|${item.frameId ?? ''}|${item.frameUrl}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isManifestScanResult(item = {}) {
+  return /\.(?:m3u8|m3u|mpd)(?:[?#]|$)/i.test(item.url || '') || /mpegurl|dash\+xml/i.test(`${item.type || ''} ${item.mime || ''}`);
+}
+
+function markManifestInspectionDeferred(item, kind) {
+  const detail = { kind, encrypted: null, inspected: false, inspectionDeferred: 'per-scan-limit' };
+  if (kind === 'hls') item.playlist = detail;
+  else item.manifest = detail;
+  item.safetyWarning = kind === 'hls'
+    ? 'Playlist inspection was deferred because this scan exposed many manifests. Any conversion still validates encryption, signed components, layout, and size before fetching segments.'
+    : 'Manifest inspection was deferred because this scan exposed many manifests. Media Scout can save the MPD file only; it will not fetch or assemble DASH segments.';
+}
+
 
 export function parseHlsInspection(text, baseUrl) {
   const lines = String(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const variants = parseHlsVariants(text, baseUrl);
+  const variantResult = parseHlsVariants(text, baseUrl);
+  const variants = variantResult.items;
   const audioRenditions = [];
+  let audioRenditionCount = 0;
   for (const line of lines) {
     if (!line.startsWith('#EXT-X-MEDIA') || !/TYPE=AUDIO/i.test(line)) continue;
+    audioRenditionCount += 1;
+    if (audioRenditions.length >= MAX_PARSED_HLS_AUDIO_RENDITIONS) continue;
     const uri = readStringAttr(line, 'URI');
     audioRenditions.push({
       groupId: readStringAttr(line, 'GROUP-ID'),
@@ -283,24 +355,27 @@ export function parseHlsInspection(text, baseUrl) {
       uri: uri ? normalizeUrl(uri, baseUrl) : ''
     });
   }
-  const discontinuityCount = lines.filter((line) => line.startsWith('#EXT-X-DISCONTINUITY')).length;
+  const discontinuityCount = lines.reduce((count, line) => count + (line === '#EXT-X-DISCONTINUITY' ? 1 : 0), 0);
   const playlistTypeLine = lines.find((line) => line.startsWith('#EXT-X-PLAYLIST-TYPE:')) || '';
   const playlistType = playlistTypeLine.split(':')[1]?.trim().toLowerCase() || '';
   const targetDurationLine = lines.find((line) => line.startsWith('#EXT-X-TARGETDURATION:')) || '';
   const targetDuration = Number(targetDurationLine.split(':')[1]) || 0;
   const mediaSequenceLine = lines.find((line) => line.startsWith('#EXT-X-MEDIA-SEQUENCE:')) || '';
   const mediaSequence = Number(mediaSequenceLine.split(':')[1]) || 0;
-  const segmentUris = lines
-    .filter((line) => line && !line.startsWith('#') && !/\.m3u8(?:[?#]|$)/i.test(line))
-    .map((line) => normalizeUrl(line, baseUrl))
-    .filter(Boolean);
-  const segmentCount = segmentUris.length;
-  const partialSegmentUris = lines
-    .filter((line) => line.startsWith('#EXT-X-PART'))
-    .map((line) => readStringAttr(line, 'URI'))
-    .filter(Boolean)
-    .map((line) => normalizeUrl(line, baseUrl))
-    .filter(Boolean);
+  const segmentUris = [];
+  let segmentCount = 0;
+  let partialSegmentCount = 0;
+  for (const line of lines) {
+    if (line.startsWith('#EXT-X-PART')) {
+      if (normalizeUrl(readStringAttr(line, 'URI'), baseUrl)) partialSegmentCount += 1;
+      continue;
+    }
+    if (!line || line.startsWith('#') || /\.m3u8(?:[?#]|$)/i.test(line)) continue;
+    const segmentUrl = normalizeUrl(line, baseUrl);
+    if (!segmentUrl) continue;
+    segmentCount += 1;
+    if (segmentUris.length < MAX_PARSED_HLS_SEGMENTS) segmentUris.push(segmentUrl);
+  }
   const durationSeconds = lines.reduce((sum, line) => {
     const match = /^#EXTINF:([0-9.]+)/i.exec(line);
     return sum + (match ? Number(match[1]) || 0 : 0);
@@ -319,14 +394,19 @@ export function parseHlsInspection(text, baseUrl) {
       estimatedDurationSeconds,
       targetDuration,
       mediaSequence,
-      partialSegmentCount: partialSegmentUris.length,
+      partialSegmentCount,
       discontinuityCount,
       hasDiscontinuity: discontinuityCount > 0,
-      hasSeparateAudio: audioRenditions.length > 0 || variants.some((variant) => variant.audioGroupId),
+      hasSeparateAudio: audioRenditionCount > 0 || variants.some((variant) => variant.audioGroupId),
+      audioRenditionCount,
+      variantCount: variantResult.count,
+      tooManyVariants: variantResult.count > MAX_PARSED_HLS_VARIANTS,
+      tooManyAudioRenditions: audioRenditionCount > MAX_PARSED_HLS_AUDIO_RENDITIONS,
+      tooManySegments: segmentCount > MAX_PARSED_HLS_SEGMENTS,
       playlistType,
       hasMap: lines.some((line) => line.startsWith('#EXT-X-MAP')),
       hasFmp4Segments: segmentUris.some((url) => /\.(m4s|mp4|m4v|cmfv|cmfa)(?:[?#]|$)/i.test(url)),
-      hasPartialSegments: partialSegmentUris.length > 0,
+      hasPartialSegments: partialSegmentCount > 0,
       hasPreloadHint: lines.some((line) => line.startsWith('#EXT-X-PRELOAD-HINT')),
       iframeOnly: lines.some((line) => line.startsWith('#EXT-X-I-FRAMES-ONLY')),
       hasIndependentSegments: lines.some((line) => line.startsWith('#EXT-X-INDEPENDENT-SEGMENTS')),
@@ -398,6 +478,9 @@ async function annotateSelectedHlsVariant(item, settings = {}) {
       item.playlist.estimatedDurationSeconds = variantInfo.playlist.estimatedDurationSeconds;
       item.playlist.targetDuration = variantInfo.playlist.targetDuration;
       item.playlist.partialSegmentCount = variantInfo.playlist.partialSegmentCount;
+      item.playlist.tooManySegments = Boolean(variantInfo.playlist.tooManySegments);
+      item.playlist.tooManyVariants = Boolean(item.playlist.tooManyVariants || variantInfo.playlist.tooManyVariants);
+      item.playlist.tooManyAudioRenditions = Boolean(item.playlist.tooManyAudioRenditions || variantInfo.playlist.tooManyAudioRenditions);
       item.playlist.discontinuityCount = Math.max(Number(item.playlist.discontinuityCount || 0), Number(variantInfo.playlist.discontinuityCount || 0));
       item.playlist.hasEndList = variantInfo.playlist.hasEndList;
       item.playlist.playlistType = variantInfo.playlist.playlistType || item.playlist.playlistType || '';
@@ -425,13 +508,45 @@ async function annotateSelectedHlsVariant(item, settings = {}) {
 
 async function fetchTextWithTimeout(url, timeoutMs = 7000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort('hls-selected-variant-timeout'), timeoutMs);
+  const timer = setTimeout(() => controller.abort('manifest-fetch-timeout'), timeoutMs);
   try {
     const response = await fetch(url, { credentials: 'omit', cache: 'no-store', signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.text();
+    return await readBoundedResponseText(response, MAX_MANIFEST_TEXT_BYTES);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function readBoundedResponseText(response, maxBytes) {
+  const contentLengthHeader = response.headers?.get?.('content-length');
+  const contentLength = contentLengthHeader == null || contentLengthHeader === '' ? null : Number(contentLengthHeader);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Error(`Manifest exceeds the ${maxBytes}-byte inspection limit.`);
+  }
+  if (!response.body?.getReader) {
+    throw new Error('Manifest cannot be inspected safely because the browser did not expose a bounded response stream.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytesRead = 0;
+  const chunks = [];
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytesRead += value.byteLength;
+      if (bytesRead > maxBytes) {
+        try { await reader.cancel('manifest-inspection-limit'); } catch (_error) {}
+        throw new Error(`Manifest exceeds the ${maxBytes}-byte inspection limit.`);
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join('');
+  } finally {
+    reader.releaseLock?.();
   }
 }
 
@@ -482,9 +597,10 @@ export function findProtectedHlsUri(hlsInfo = {}, playlistUrl = '') {
   return candidates.find((candidate) => candidate.url && looksSignedOrExpiring(candidate.url)) || null;
 }
 
-export function parseHlsVariants(text, baseUrl) {
+function parseHlsVariants(text, baseUrl) {
   const lines = String(text).split(/\r?\n/);
-  const variants = [];
+  const items = [];
+  let count = 0;
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trim();
     if (!line.startsWith('#EXT-X-STREAM-INF')) continue;
@@ -493,37 +609,52 @@ export function parseHlsVariants(text, baseUrl) {
     const bandwidth = /BANDWIDTH=(\d+)/i.exec(line)?.[1];
     const resolution = /RESOLUTION=(\d+x\d+)/i.exec(line)?.[1] || '';
     const url = normalizeUrl(next, baseUrl);
-    if (url) variants.push({
-      url,
-      bandwidth: bandwidth ? Number(bandwidth) : undefined,
-      resolution,
-      audioGroupId: readStringAttr(line, 'AUDIO'),
-      codecs: readStringAttr(line, 'CODECS')
-    });
+    if (url) {
+      count += 1;
+      if (items.length < MAX_PARSED_HLS_VARIANTS) {
+        items.push({
+          url,
+          bandwidth: bandwidth ? Number(bandwidth) : undefined,
+          resolution,
+          audioGroupId: readStringAttr(line, 'AUDIO'),
+          codecs: readStringAttr(line, 'CODECS')
+        });
+      }
+    }
   }
-  debug('Parsed HLS variants', variants.length);
-  return variants;
+  debug('Parsed HLS variants', count);
+  return { items, count };
 }
 
-export function parseDashRepresentations(text) {
-  const representations = [];
+function parseDashRepresentations(text) {
+  const items = [];
+  let count = 0;
   const regex = /<Representation\b([^>]*)>/gi;
   let match;
   while ((match = regex.exec(String(text)))) {
+    count += 1;
+    if (items.length >= MAX_PARSED_DASH_REPRESENTATIONS) continue;
     const attrs = match[1];
     const id = /\bid=["']([^"']+)["']/i.exec(attrs)?.[1] || '';
     const bandwidth = /\bbandwidth=["'](\d+)["']/i.exec(attrs)?.[1];
     const width = /\bwidth=["'](\d+)["']/i.exec(attrs)?.[1];
     const height = /\bheight=["'](\d+)["']/i.exec(attrs)?.[1];
     const mimeType = /\bmimeType=["']([^"']+)["']/i.exec(attrs)?.[1] || '';
-    representations.push({
+    items.push({
       id,
       bandwidth: bandwidth ? Number(bandwidth) : undefined,
       resolution: width && height ? `${width}x${height}` : '',
       mimeType
     });
   }
-  return representations;
+  return { items, count };
+}
+
+function hlsStructureLimitReason(playlist = {}) {
+  if (playlist.tooManyVariants) return `This HLS master exposes more than ${MAX_PARSED_HLS_VARIANTS} variants, above the safe inspection limit.`;
+  if (playlist.tooManyAudioRenditions) return `This HLS playlist exposes more than ${MAX_PARSED_HLS_AUDIO_RENDITIONS} audio renditions, above the safe inspection limit.`;
+  if (playlist.tooManySegments) return `This HLS playlist exposes more than ${MAX_PARSED_HLS_SEGMENTS} segments, above the safe in-browser merge limit.`;
+  return '';
 }
 
 
@@ -602,10 +733,10 @@ function finiteNumber(value) {
 
 function sanitizeSmallObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const result = {};
+  const result = Object.create(null);
   for (const [key, itemValue] of Object.entries(value).slice(0, 16)) {
     const cleanKey = clipString(key, 80);
-    if (!cleanKey) continue;
+    if (!cleanKey || /^(?:__proto__|prototype|constructor)$/i.test(cleanKey)) continue;
     if (typeof itemValue === 'number' || typeof itemValue === 'boolean') result[cleanKey] = itemValue;
     else if (itemValue == null) result[cleanKey] = itemValue;
     else result[cleanKey] = clipString(itemValue, 240);

@@ -1,8 +1,7 @@
-import { MESSAGE_TYPES } from '../shared/constants.js';
+import { DEFAULT_SETTINGS, ERROR_CATEGORIES, HLS_OUTPUT_METHODS, IMPLEMENTED_HLS_OUTPUT_METHODS, MEDIA_TYPES, MESSAGE_TYPES, SOURCES } from '../shared/constants.js';
 import { buildFilename, sanitizeFilenamePart } from '../shared/filename-utils.js';
 import { getQueueHistory, getSettings } from '../shared/storage-utils.js';
 import { createStructuredError, getHostname, makeMediaId, makeTaskId, normalizeUrl, nowISO } from '../shared/utils.js';
-import { ERROR_CATEGORIES, HLS_OUTPUT_METHODS, IMPLEMENTED_HLS_OUTPUT_METHODS, MEDIA_TYPES, SOURCES } from '../shared/constants.js';
 import { downloadWithAllowedStrategies } from './download-strategies.js';
 import { validateMediaUrl } from '../shared/validators.js';
 import { QueueManager } from './queue-manager.js';
@@ -15,7 +14,7 @@ export class DownloadManager {
     this.downloadCountsByTab = new Map();
     this.cleanupTabsByTask = new Map();
     this.queue = new QueueManager({
-      maxParallel: 3,
+      maxParallel: DEFAULT_SETTINGS.maxParallelDownloads,
       worker: (task) => this._downloadTask(task),
       onChange: (state) => this.broadcast({ type: MESSAGE_TYPES.QUEUE_UPDATED, state }),
       onCancel: (task) => this._cancelActiveTask(task),
@@ -48,12 +47,12 @@ export class DownloadManager {
     const freshnessError = staleActionError(media);
     if (freshnessError) throw freshnessError;
     const settings = await getSettings();
-    const index = this._nextFilenameIndex(tabId);
     const selectedHlsOutputMethod = normalizeHlsOutputMethod(hlsOutputMethod, settings.hlsOutputMethod);
-    const filename = buildFilename({ settings, media: mediaForDownloadFilename(media, selectedHlsOutputMethod), tab, index });
     const taskHlsOutputMethod = media.mediaType === MEDIA_TYPES.HLS ? selectedHlsOutputMethod : '';
     const existing = this.queue.findRunnableDuplicate({ mediaId, hlsOutputMethod: taskHlsOutputMethod });
     if (existing) return { ...existing, duplicateOf: existing.id };
+    const index = this._nextFilenameIndex(tabId);
+    const filename = buildFilename({ settings, media: mediaForDownloadFilename(media, selectedHlsOutputMethod), tab, index });
     const task = {
       id: makeTaskId(mediaId),
       mediaId,
@@ -130,12 +129,21 @@ export class DownloadManager {
     return this.queue.clearSettled();
   }
 
+  clearPersistedQueueHistory() {
+    return this.queue.clearPersistedHistory();
+  }
+
   cancelTasksForTab(tabId, reason = 'Source tab was closed.') {
+    this.resetTabDownloadCounter(tabId);
     return this.queue.cancelByTabId(tabId, reason);
   }
 
   cancelPageContextTasksForTab(tabId, reason = 'The source tab changed before this page-context download finished.') {
     return this.queue.cancelByTabIdWhere(tabId, reason, taskRequiresLivePageContext);
+  }
+
+  resetTabDownloadCounter(tabId) {
+    this.downloadCountsByTab.delete(tabId);
   }
 
   updateProgress(taskId, progress, sender = {}) {

@@ -4,6 +4,8 @@ import {
   IMPLEMENTED_HLS_OUTPUT_METHODS,
   HLS_WORK_MODES,
   HLS_VARIANT_PREFERENCES,
+  MAX_PARALLEL_MAX,
+  MAX_PARALLEL_MIN,
   MESSAGE_TYPES
 } from '../shared/constants.js';
 import { MEDIA_TYPE_REGISTRY } from '../shared/media-type-registry.js';
@@ -28,6 +30,7 @@ const els = {
   notifications: byId('notifications'),
   debugLogs: byId('debugLogs'),
   status: byId('status'),
+  changeStateLabel: byId('changeStateLabel'),
   testResults: byId('testResults'),
   duplicateConsequence: byId('duplicateConsequence'),
   permissionHealth: byId('permissionHealth'),
@@ -66,19 +69,24 @@ function wireControls() {
   els.disableMetadataTypes?.addEventListener('click', disableMetadataTypes);
   els.fileTypeSearch?.addEventListener('input', filterFileTypes);
   els.copySupportSummary?.addEventListener('click', copySupportSummaryText);
-  for (const control of document.querySelectorAll('input, select')) {
-    control.addEventListener('change', markDirty);
-    control.addEventListener('input', updatePreviews);
+  for (const control of document.querySelectorAll('input:not(#fileTypeSearch), select:not(:disabled)')) {
+    control.addEventListener('input', markDirty);
   }
+  window.addEventListener('beforeunload', (event) => {
+    if (!dirty) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
 }
 
 async function load() {
   try {
     const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.SETTINGS_GET });
+    if (!response?.ok) throw new Error(response?.error || 'The background worker rejected the settings request.');
     settings = response?.settings || DEFAULT_SETTINGS;
-    dirty = false;
     updatePermissionHealth();
     render();
+    setDirty(false);
     setStatus('Settings loaded.');
   } catch (error) {
     setStatus(error?.message || 'Could not load settings.');
@@ -121,7 +129,6 @@ function renderFileTypeControls() {
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.dataset.extension = extension;
-        input.addEventListener('change', markDirty);
         const span = document.createElement('span');
         span.textContent = extension.toUpperCase();
         label.append(input, span);
@@ -164,36 +171,38 @@ async function save() {
   }
   const nextSettings = {
     enabledFileTypes,
-    maxParallelDownloads: Math.min(6, Math.max(1, Number(els.maxParallelDownloads?.value) || 3)),
-    segmentParallelism: Math.min(16, Math.max(1, Number(els.segmentParallelism?.value) || DEFAULT_SETTINGS.segmentParallelism)),
-    segmentRetryLimit: Math.min(4, Math.max(0, Number.isFinite(Number(els.segmentRetryLimit?.value)) ? Number(els.segmentRetryLimit.value) : DEFAULT_SETTINGS.segmentRetryLimit)),
-    episodeBatchScanParallelism: Math.min(4, Math.max(1, Number.isFinite(Number(els.episodeBatchScanParallelism?.value)) ? Number(els.episodeBatchScanParallelism.value) : DEFAULT_SETTINGS.episodeBatchScanParallelism)),
-    confirmLargeEpisodeBatchThreshold: Math.min(48, Math.max(2, Number.isFinite(Number(els.confirmLargeEpisodeBatchThreshold?.value)) ? Number(els.confirmLargeEpisodeBatchThreshold.value) : DEFAULT_SETTINGS.confirmLargeEpisodeBatchThreshold)),
+    maxParallelDownloads: boundedInteger(els.maxParallelDownloads?.value, MAX_PARALLEL_MIN, MAX_PARALLEL_MAX, DEFAULT_SETTINGS.maxParallelDownloads),
+    segmentParallelism: boundedInteger(els.segmentParallelism?.value, 1, 16, DEFAULT_SETTINGS.segmentParallelism),
+    segmentRetryLimit: boundedInteger(els.segmentRetryLimit?.value, 0, 4, DEFAULT_SETTINGS.segmentRetryLimit),
+    episodeBatchScanParallelism: boundedInteger(els.episodeBatchScanParallelism?.value, 1, 4, DEFAULT_SETTINGS.episodeBatchScanParallelism),
+    confirmLargeEpisodeBatchThreshold: boundedInteger(els.confirmLargeEpisodeBatchThreshold?.value, 2, 48, DEFAULT_SETTINGS.confirmLargeEpisodeBatchThreshold),
     hlsOutputMethod: IMPLEMENTED_HLS_OUTPUT_METHODS.includes(els.hlsOutputMethod?.value) ? els.hlsOutputMethod.value : DEFAULT_SETTINGS.hlsOutputMethod,
     hlsWorkMode: Object.values(HLS_WORK_MODES).includes(els.hlsWorkMode?.value) ? els.hlsWorkMode.value : DEFAULT_SETTINGS.hlsWorkMode,
     hlsVariantPreference: Object.values(HLS_VARIANT_PREFERENCES).includes(els.hlsVariantPreference?.value) ? els.hlsVariantPreference.value : DEFAULT_SETTINGS.hlsVariantPreference,
     duplicateBehavior: Object.values(DUPLICATE_BEHAVIORS).includes(els.duplicateBehavior?.value) ? els.duplicateBehavior.value : DEFAULT_SETTINGS.duplicateBehavior,
     showManualM3u8Converter: Boolean(els.showManualM3u8Converter?.checked),
     includeSensitiveUrlsInReports: Boolean(els.includeSensitiveUrlsInReports?.checked),
-    queueHistoryRetentionDays: Math.min(30, Math.max(0, Number.isFinite(Number(els.queueHistoryRetentionDays?.value)) ? Number(els.queueHistoryRetentionDays.value) : DEFAULT_SETTINGS.queueHistoryRetentionDays)),
+    queueHistoryRetentionDays: boundedInteger(els.queueHistoryRetentionDays?.value, 0, 30, DEFAULT_SETTINGS.queueHistoryRetentionDays),
     filenameTemplate: String(els.filenameTemplate?.value || '').trim() || DEFAULT_SETTINGS.filenameTemplate,
     preferredSubfolder: String(els.preferredSubfolder?.value || '').trim(),
     notifications: Boolean(els.notifications?.checked),
     debugLogs: Boolean(els.debugLogs?.checked)
   };
+  if (els.save) els.save.disabled = true;
   try {
     const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: nextSettings });
     if (response?.ok) {
       settings = response.settings;
-      dirty = false;
-      updateTypeCounts();
-      updatePreviews();
+      render();
+      setDirty(false);
       setStatus('Settings saved.');
     } else {
       setStatus(response?.error || 'Could not save settings.');
     }
   } catch (error) {
     setStatus(error?.message || 'Could not reach the background worker to save settings.');
+  } finally {
+    if (els.save) els.save.disabled = !dirty;
   }
 }
 
@@ -232,7 +241,8 @@ async function runSelfTests() {
   try {
     const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.RUN_SELF_TESTS });
     if (els.testResults) els.testResults.textContent = JSON.stringify(response?.selfTests || response, null, 2);
-    setStatus(response?.ok === false ? 'Self-tests returned failures.' : 'Self-tests completed.');
+    const passed = response?.ok === true && response?.selfTests?.passed === true;
+    setStatus(passed ? 'Self-tests passed.' : 'Self-tests returned failures.');
   } catch (error) {
     if (els.testResults) els.testResults.textContent = error?.message || 'Self-tests could not run.';
     setStatus(error?.message || 'Could not reach the background worker for self-tests.');
@@ -242,25 +252,19 @@ async function runSelfTests() {
 function setTypePreset(enabledExtensions) {
   const enabled = new Set(enabledExtensions);
   for (const input of els.fileTypes?.querySelectorAll('input[type="checkbox"]') || []) input.checked = enabled.has(input.dataset.extension);
-  dirty = true;
-  updateTypeCounts();
-  setStatus('Core media preset selected. Save to apply.');
+  markDirty('Core media preset selected. Save to apply.');
 }
 
 function setAllTypeCheckboxes(checked) {
   for (const input of els.fileTypes?.querySelectorAll('input[type="checkbox"]') || []) input.checked = checked;
-  dirty = true;
-  updateTypeCounts();
-  setStatus(checked ? 'All registry types selected. Save to apply.' : 'All registry types cleared. Save to apply.');
+  markDirty(checked ? 'All registry types selected. Save to apply.' : 'All registry types cleared. Save to apply.');
 }
 
 function disableMetadataTypes() {
   for (const input of els.fileTypes?.querySelectorAll('input[type="checkbox"]') || []) {
     if (['json', 'xml'].includes(input.dataset.extension)) input.checked = false;
   }
-  dirty = true;
-  updateTypeCounts();
-  setStatus('Noisy metadata hints disabled. Save to apply.');
+  markDirty('Noisy metadata hints disabled. Save to apply.');
 }
 
 function coreMediaExtensions() {
@@ -405,11 +409,17 @@ async function copyText(text) {
   }
 }
 
-function markDirty() {
-  dirty = true;
-  if (els.status) els.status.textContent = 'Unsaved changes. Review consequences, then save.';
+function markDirty(message) {
+  setDirty(true);
+  if (els.status) els.status.textContent = typeof message === 'string' ? message : 'Unsaved changes. Review consequences, then save.';
   updateTypeCounts();
   updatePreviews();
+}
+
+function setDirty(value) {
+  dirty = Boolean(value);
+  if (els.save) els.save.disabled = !dirty;
+  if (els.changeStateLabel) els.changeStateLabel.textContent = dirty ? 'Pending changes' : 'All changes saved';
 }
 
 function setStatus(text) {
@@ -420,6 +430,11 @@ function setStatus(text) {
 
 function setValue(key, value) { if (els[key]) els[key].value = value; }
 function setChecked(key, value) { if (els[key]) els[key].checked = Boolean(value); }
+function boundedInteger(value, minimum, maximum, fallback) {
+  const numeric = value == null || value === '' ? Number.NaN : Number(value);
+  const normalized = Number.isFinite(numeric) ? Math.round(numeric) : fallback;
+  return Math.min(maximum, Math.max(minimum, normalized));
+}
 function groupLabel(group) {
   return {
     video: 'Video containers',

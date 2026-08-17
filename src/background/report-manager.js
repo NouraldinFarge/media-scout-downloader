@@ -30,17 +30,23 @@ export class ReportManager {
       queue: this.downloadManager.getState()
     };
     const diagnostics = this.diagnostics.snapshot();
-    const persistedQueueHistory = await getQueueHistory();
+    let persistedQueueHistory = null;
+    try {
+      persistedQueueHistory = await getQueueHistory();
+    } catch (_error) {
+      // Persisted history is optional context. A transient or corrupt storage
+      // read must not block export of the current in-memory report.
+    }
     const allowSensitiveUrls = Boolean(includeSensitiveUrls && settings.includeSensitiveUrlsInReports);
     const reportTab = allowSensitiveUrls ? tab : redactTabForReport(tab);
     const detectedMedia = sanitizeMediaItemsForReport(state.mediaItems || []);
-    const extensionState = buildExtensionState({ state, settings, diagnostics, siteAccess, selfTests, generatedAt, persistedQueueHistory });
+    const extensionState = buildExtensionState({ state, settings, diagnostics, siteAccess, selfTests, generatedAt, persistedQueueHistory, allowSensitiveUrls });
     const normalizedScan = detailedScan || { unavailable: true, error: scannerError || 'Detailed page scan unavailable.' };
     const decisionLog = buildDecisionLog(normalizedScan);
 
     const files = [
       { path: 'README.txt', content: buildReportReadme(allowSensitiveUrls ? 'full' : 'redacted') },
-      { path: 'summary.md', content: buildSummaryMarkdown({ tab: reportTab, siteAccess, state: allowSensitiveUrls ? state : redactReportValue(state), detailedScan: allowSensitiveUrls ? normalizedScan : redactReportValue(normalizedScan), generatedAt, scannerError, persistedQueueHistory }) },
+      { path: 'summary.md', content: buildSummaryMarkdown({ tab: reportTab, siteAccess, state: allowSensitiveUrls ? state : redactReportValue(state), detailedScan: allowSensitiveUrls ? normalizedScan : redactReportValue(normalizedScan), generatedAt, scannerError: allowSensitiveUrls ? scannerError : redactUrlsInText(scannerError || ''), persistedQueueHistory }) },
       { path: 'detected-media.json', content: stringify(allowSensitiveUrls ? detectedMedia : redactReportValue(detectedMedia)) },
       { path: 'page-scan.json', content: stringify(allowSensitiveUrls ? normalizedScan : redactReportValue(normalizedScan)) },
       { path: 'decision-log.json', content: stringify(allowSensitiveUrls ? decisionLog : redactReportValue(decisionLog)) },
@@ -74,28 +80,46 @@ function redactTabForReport(tab = {}) {
     ...tab,
     url: redactUrlValue(tab.url),
     pendingUrl: redactUrlValue(tab.pendingUrl),
-    title: tab.title || ''
+    title: redactUrlsInText(tab.title || '')
   };
 }
 
-function redactReportValue(value, key = '') {
+export function redactReportValue(value, key = '') {
   if (Array.isArray(value)) return value.map((item) => redactReportValue(item, key));
   if (!value || typeof value !== 'object') {
-    if (typeof value === 'string' && looksSensitiveKey(key)) return redactUrlValue(value);
-    return value;
+    if (typeof value !== 'string') return value;
+    if (looksSecretKey(key)) return '[redacted]';
+    if (looksUrlKey(key)) return redactUrlValue(value);
+    return redactUrlsInText(value);
   }
-  const out = {};
+  const out = Object.create(null);
   for (const [entryKey, entryValue] of Object.entries(value)) {
-    if (looksSensitiveKey(entryKey)) out[entryKey] = typeof entryValue === 'string' ? redactUrlValue(entryValue) : redactReportValue(entryValue, entryKey);
+    if (looksSecretKey(entryKey)) out[entryKey] = '[redacted]';
+    else if (looksUrlKey(entryKey)) out[entryKey] = typeof entryValue === 'string' ? redactUrlValue(entryValue) : redactReportValue(entryValue, entryKey);
     else out[entryKey] = redactReportValue(entryValue, entryKey);
   }
   return out;
 }
 
-function looksSensitiveKey(key = '') {
+function looksUrlKey(key = '') {
   const value = String(key);
   return /(^|_)(url|urls|uri|uris|href|hrefs|src|srcs|currentSrc|frameUrl|frameUrls|documentUrl|documentUrls|pageUrl|pageUrls|tabUrl|tabUrls|normalizedUrl|normalizedUrls|originalPlaylistUrl|originalPlaylistUrls|variantUrl|variantUrls)$/i.test(value)
-    || /(url|urls|uri|uris|href|hrefs|src|srcs)$/i.test(value);
+    || /(url|urls|uri|uris|href|hrefs|src|srcs)$/i.test(value)
+    || /^(poster|referrer)$/i.test(value);
+}
+
+function looksSecretKey(key = '') {
+  const value = String(key);
+  return /(^|[-_])(authorization|cookie|credential|password|secret|signature|token)(s)?($|[-_])/i.test(value)
+    || /(authorization|cookie|credential|password|secret|signature|token|apiKey|privateKey|secretKey|accessKey)s?$/i.test(value);
+}
+
+function redactUrlsInText(text = '') {
+  return String(text)
+    .replace(/\b(?:blob:(?:https?:\/\/)?|https?:\/\/)[^\s"'<>]+/gi, (url) => redactUrlValue(url))
+    .replace(/(^|[\s(])((?:\/\/|\/(?!\/)|\.\.?\/)[^\s"'<>]*\?[^\s"'<>]*)/g, (_match, prefix, url) => `${prefix}${redactUrlValue(url)}`)
+    .replace(/([?&](?:auth|authorization|credential|key|password|policy|secret|sig|signature|token)=[^&#\s"'<>]*)/gi, (value) => `${value.split('=')[0]}=[redacted]`)
+    .replace(/\b(authorization|cookie|credential|password|secret|signature|token)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]');
 }
 
 function redactUrlValue(raw = '') {
@@ -103,11 +127,12 @@ function redactUrlValue(raw = '') {
   if (!value) return '';
   try {
     const url = new URL(value);
+    if (url.protocol === 'blob:') return 'blob://redacted';
     const queryNames = Array.from(url.searchParams.keys()).sort();
-    return `${url.protocol}//${url.hostname}${url.pathname ? `/path-${hashText(url.pathname)}` : ''}${queryNames.length ? `?params=${queryNames.map((name) => encodeURIComponent(name)).join(',')}` : ''}`;
+    return `${url.protocol}//${url.hostname}${url.pathname ? `/path-${hashText(url.pathname)}` : ''}${queryNames.length ? `?params=${queryNames.length}` : ''}`;
   } catch (_error) {
     if (value.startsWith('blob:')) return 'blob://redacted';
-    return value.length > 80 ? `${value.slice(0, 24)}…redacted…${value.slice(-12)}` : value;
+    return `[redacted-value-${hashText(value)}]`;
   }
 }
 

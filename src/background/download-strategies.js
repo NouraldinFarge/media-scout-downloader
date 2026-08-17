@@ -280,15 +280,16 @@ async function directFileStrategy(task, context) {
 
 async function chromeDownload(url, filename, settings, onProgress = () => {}, onDownloadStarted = () => {}, options = {}) {
   const conflictAction = duplicateBehaviorToConflictAction(settings.duplicateBehavior);
-  onProgress({ phase: 'starting', percent: 1, detail: 'Starting Chrome download.' });
+  try { onProgress({ phase: 'starting', percent: 1, detail: 'Starting Chrome download.' }); } catch (_error) {}
   const downloadId = await new Promise((resolve, reject) => {
     chrome.downloads.download({ url, filename, conflictAction, saveAs: conflictAction === 'prompt' }, (id) => {
       const error = chrome.runtime.lastError;
       if (error) reject(createStructuredError(classifyChromeDownloadError(error.message), 'chrome-download-error', error.message));
+      else if (!Number.isInteger(id) || id < 0) reject(createStructuredError(ERROR_CATEGORIES.UNSUPPORTED, 'chrome-download-id-missing', 'Chrome started no monitorable download. Check browser Downloads before trying again.'));
       else resolve(id);
     });
   });
-  onDownloadStarted(downloadId);
+  try { onDownloadStarted(downloadId); } catch (_error) {}
   await waitForDownloadCompletion(downloadId, onProgress, options);
   return { downloadId, status: DOWNLOAD_STATUSES.COMPLETED };
 }
@@ -303,38 +304,51 @@ function waitForDownloadCompletion(downloadId, onProgress = () => {}, options = 
 
   return new Promise((resolve, reject) => {
     let settled = false;
+    let listenerRegistered = false;
     const cleanup = () => {
       if (settled) return false;
       settled = true;
-      chrome.downloads.onChanged.removeListener(listener);
       clearInterval(watchdog);
+      if (listenerRegistered) {
+        try { chrome.downloads.onChanged.removeListener(listener); } catch (_error) {}
+        listenerRegistered = false;
+      }
       return true;
     };
     const fail = (error) => {
       if (!cleanup()) return;
       reject(error);
     };
+    const cancelAndFail = (error) => {
+      try { chrome.downloads.cancel(downloadId, () => void chrome.runtime.lastError); } catch (_error) {}
+      fail(error);
+    };
     const done = () => {
       if (!cleanup()) return;
-      onProgress({ phase: 'completed', percent: 100, detail: 'Chrome download completed.' });
+      try { onProgress({ phase: 'completed', percent: 100, detail: 'Chrome download completed.' }); } catch (_error) {}
       resolve();
     };
     const inspectCurrentState = () => {
-      chrome.downloads.search({ id: downloadId }, (items) => {
-        if (settled) return;
-        const runtimeError = chrome.runtime.lastError;
-        if (runtimeError) return;
-        const item = items?.[0];
-        if (!item) return;
-        const bytes = Number(item.bytesReceived) || 0;
-        if (bytes > lastBytes) {
-          lastBytes = bytes;
-          lastProgressAt = Date.now();
-          reportChromeDownloadProgress(downloadId, onProgress);
-        }
-        if (item.state === 'complete') done();
-        else if (item.state === 'interrupted') fail(createStructuredError(ERROR_CATEGORIES.USER_CANCELED, 'download-canceled-or-interrupted', item.error || 'Download was canceled or interrupted.'));
-      });
+      try {
+        chrome.downloads.search({ id: downloadId }, (items) => {
+          if (settled) return;
+          const runtimeError = chrome.runtime.lastError;
+          if (runtimeError) return;
+          const item = items?.[0];
+          if (!item) return;
+          const bytes = Number(item.bytesReceived) || 0;
+          if (bytes > lastBytes) {
+            lastBytes = bytes;
+            lastProgressAt = Date.now();
+            reportChromeDownloadProgress(downloadId, onProgress);
+          }
+          if (item.state === 'complete') done();
+          else if (item.state === 'interrupted') {
+            const category = isCanceled() ? ERROR_CATEGORIES.USER_CANCELED : classifyChromeDownloadError(item.error || 'download-interrupted');
+            fail(createStructuredError(category, category === ERROR_CATEGORIES.USER_CANCELED ? 'download-canceled' : 'download-interrupted', item.error || 'Download was interrupted.'));
+          }
+        });
+      } catch (_error) {}
     };
     const listener = (delta) => {
       if (delta.id !== downloadId || settled) return;
@@ -349,37 +363,46 @@ function waitForDownloadCompletion(downloadId, onProgress = () => {}, options = 
     const watchdog = setInterval(() => {
       if (settled) return;
       if (isCanceled()) {
-        try { chrome.downloads.cancel(downloadId, () => void chrome.runtime.lastError); } catch (_error) {}
-        fail(createStructuredError(ERROR_CATEGORIES.USER_CANCELED, 'download-canceled', 'Download was canceled by the user.'));
+        cancelAndFail(createStructuredError(ERROR_CATEGORIES.USER_CANCELED, 'download-canceled', 'Download was canceled by the user.'));
         return;
       }
       const now = Date.now();
       if (now - startedAt > hardTimeoutMs) {
-        fail(createStructuredError(ERROR_CATEGORIES.NETWORK, 'download-hard-timeout', 'Chrome download did not complete before the safety timeout.'));
+        cancelAndFail(createStructuredError(ERROR_CATEGORIES.NETWORK, 'download-hard-timeout', 'Chrome download did not complete before the safety timeout and was canceled.'));
         return;
       }
       if (now - lastProgressAt > idleTimeoutMs) {
-        fail(createStructuredError(ERROR_CATEGORIES.NETWORK, 'download-idle-timeout', 'Chrome download stopped making progress and was timed out.'));
+        cancelAndFail(createStructuredError(ERROR_CATEGORIES.NETWORK, 'download-idle-timeout', 'Chrome download stopped making progress and was canceled after the idle timeout.'));
         return;
       }
       inspectCurrentState();
     }, 5_000);
 
-    chrome.downloads.onChanged.addListener(listener);
-    inspectCurrentState();
+    try {
+      chrome.downloads.onChanged.addListener(listener);
+      listenerRegistered = true;
+      inspectCurrentState();
+    } catch (error) {
+      fail(createStructuredError(ERROR_CATEGORIES.UNSUPPORTED, 'chrome-download-listener-failed', `${error?.message || 'Chrome download monitoring could not start.'} Check browser Downloads before trying again.`));
+    }
   });
 }
 
 
 function reportChromeDownloadProgress(downloadId, onProgress) {
-  chrome.downloads.search({ id: downloadId }, (items) => {
-    const item = items?.[0];
-    if (!item) return;
-    const total = Number(item.totalBytes) || 0;
-    const loaded = Number(item.bytesReceived) || 0;
-    const percent = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 5;
-    onProgress({ phase: 'downloading', loaded, total: total || null, percent, detail: total > 0 ? `Downloaded ${loaded} of ${total} bytes.` : `Downloaded ${loaded} bytes.` });
-  });
+  try {
+    chrome.downloads.search({ id: downloadId }, (items) => {
+      if (chrome.runtime.lastError) return;
+      const item = items?.[0];
+      if (!item) return;
+      const total = Number(item.totalBytes) || 0;
+      const loaded = Number(item.bytesReceived) || 0;
+      const percent = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 5;
+      try { onProgress({ phase: 'downloading', loaded, total: total || null, percent, detail: total > 0 ? `Downloaded ${loaded} of ${total} bytes.` : `Downloaded ${loaded} bytes.` }); } catch (_error) {}
+    });
+  } catch (_error) {
+    // The watchdog's primary status lookup owns failure handling.
+  }
 }
 
 function sendTabFrameMessage(tabId, message, frameId) {
@@ -402,18 +425,21 @@ function replaceFilenameExtension(filename, extension) {
   return [...parts, replaced].filter(Boolean).join('/');
 }
 
-function shellQuote(value = '') {
+export function shellQuote(value = '') {
   // External-helper notes are copied into a local shell at the user's discretion.
   // Single-quote escaping prevents shell interpolation of $, backticks, and
   // whitespace in signed playlist URLs or suggested filenames.
-  return `'${String(value).replace(/'/g, `'\''`)}'`;
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
 }
 
-function classifyChromeDownloadError(message = '') {
+export function classifyChromeDownloadError(message = '') {
   const text = String(message).toLowerCase();
-  if (/permission|forbidden|denied/.test(text)) return ERROR_CATEGORIES.PERMISSION;
-  if (/network|timeout|server|interrupted/.test(text)) return ERROR_CATEGORIES.NETWORK;
+  if (/user[_ -]?(?:canceled|cancelled)|user[_ -]?shutdown|\bcancel(?:ed|led)?\b/.test(text)) return ERROR_CATEGORIES.USER_CANCELED;
   if (/auth|login|unauthorized/.test(text)) return ERROR_CATEGORIES.AUTHENTICATION;
+  if (/permission|forbidden|denied|file[_ -]?(?:blocked|virus|security)/.test(text)) return ERROR_CATEGORIES.PERMISSION;
+  if (/file[_ -]?(?:name[_ -]?too[_ -]?long|no[_ -]?space)/.test(text)) return ERROR_CATEGORIES.VALIDATION;
+  if (/file[_ -]?too[_ -]?large/.test(text)) return ERROR_CATEGORIES.UNSUPPORTED;
+  if (/network|timeout|server|interrupted/.test(text)) return ERROR_CATEGORIES.NETWORK;
   return ERROR_CATEGORIES.UNKNOWN;
 }
 

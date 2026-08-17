@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Media Scout Downloader",
-  "description": "Detects browser-visible media with stale-snapshot action blocking, current Options-aware CTAs, cleaned hard-rescan injection, fixed options saving, privacy-tight reports, recommendation-first popup, and persistent side-panel workspace.",
-  "version": "3.7.11",
+  "description": "Find and safely download browser-visible media with local-first scanning, clear limits, and optional per-site access.",
+  "version": "3.7.12",
   "minimum_chrome_version": "114",
   "action": {
     "default_title": "Media Scout Downloader",

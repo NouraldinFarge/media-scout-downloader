@@ -69,7 +69,9 @@ chrome.runtime.onMessage.addListener((message) => {
   }
   if (message.type === MESSAGE_TYPES.ACTIVE_TAB_STATE) {
     if (!Number.isInteger(state.tab?.id) || !Number.isInteger(message.tabId) || message.tabId === state.tab.id) {
-      if (Array.isArray(message.mediaItems)) mergeMediaItems(message.mediaItems);
+      if (message.navigationReset || message.cacheCleared) resetDetectedState();
+      else if (message.replaceMediaItems && Array.isArray(message.mediaItems)) state.mediaItems = message.mediaItems;
+      else if (Array.isArray(message.mediaItems)) mergeMediaItems(message.mediaItems);
       if (message.queue) state.queue = normalizeQueue(message.queue);
       if (message.scan) state.lastScan = message.scan;
       scheduleRender();
@@ -148,6 +150,11 @@ function mergeMediaItems(items = []) {
     map.set(key, { ...(map.get(key) || {}), ...item });
   }
   state.mediaItems = Array.from(map.values());
+}
+
+function resetDetectedState() {
+  state.mediaItems = [];
+  state.episodeBatch = null;
 }
 
 function scheduleRender() {
@@ -330,8 +337,6 @@ function persistSidePanelIntent(route, sourceTabId = null) {
     const intent = {
       route,
       sourceTabId,
-      sourceUrl: state.tab?.url || '',
-      sourceTitle: state.tab?.title || '',
       createdAt: Date.now()
     };
     chrome.storage?.session?.set?.({ [SIDE_PANEL_ROUTE_KEY]: intent }).catch?.(() => undefined);
@@ -369,10 +374,12 @@ function updateBusy() {
     if (!button) continue;
     button.disabled = busy;
     button.classList.toggle('loading', busy);
+    button.setAttribute('aria-busy', String(busy));
   }
 }
 
 function pageStateText(items = [], scan = {}) {
+  if (scan?.ok === false && /source tab.*closed/i.test(String(scan.message || ''))) return 'Source closed';
   if (scan?.ok === false && /navigated|navigation|cleared stale|previous page/i.test(String(scan.message || ''))) return 'Page changed';
   if (scan?.ok === false) return 'Blocked page';
   if (items.length) return `${items.length} candidate${items.length === 1 ? '' : 's'} found`;

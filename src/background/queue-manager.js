@@ -1,11 +1,13 @@
-import { DOWNLOAD_STATUSES, ERROR_CATEGORIES } from '../shared/constants.js';
-import { saveQueueHistory, saveQueueSummary } from '../shared/storage-utils.js';
+import { DEFAULT_SETTINGS, DOWNLOAD_STATUSES, ERROR_CATEGORIES, MAX_PARALLEL_MAX, MAX_PARALLEL_MIN } from '../shared/constants.js';
+import { clearQueueHistory as clearStoredQueueHistory, saveQueueHistory, saveQueueSummary } from '../shared/storage-utils.js';
 import { canRetryCategory } from '../shared/validators.js';
 
+const MAX_SETTLED_TASKS_PER_BUCKET = 20;
+
 export class QueueManager {
-  constructor({ worker, maxParallel = 3, onChange = () => {}, onCancel = () => {}, onTaskSettled = () => {} }) {
+  constructor({ worker, maxParallel = DEFAULT_SETTINGS.maxParallelDownloads, onChange = () => {}, onCancel = () => {}, onTaskSettled = () => {} }) {
     this.worker = worker;
-    this.maxParallel = maxParallel;
+    this.maxParallel = normalizeParallelism(maxParallel);
     this.onChange = onChange;
     this.onCancel = onCancel;
     this.onTaskSettled = onTaskSettled;
@@ -18,12 +20,14 @@ export class QueueManager {
     this.drainScheduled = false;
     this.lastPersistAt = 0;
     this.persistTimer = null;
+    this.pendingPersistState = null;
+    this.persistChain = Promise.resolve();
     this.hasEverHadTask = false;
     this.paused = false;
   }
 
   setMaxParallel(maxParallel) {
-    this.maxParallel = Math.min(6, Math.max(1, Number(maxParallel) || 3));
+    this.maxParallel = normalizeParallelism(maxParallel);
     this._changed();
     this._scheduleDrain();
   }
@@ -44,6 +48,7 @@ export class QueueManager {
     if (fromFailedIndex < 0) return null;
     const [task] = this.failed[fromFailedIndex] ? [this.failed[fromFailedIndex]] : [null];
     if (!task || !canRetryCategory(task.lastError?.category) || !hasRunnableMedia(task)) return null;
+    if (this.findRunnableDuplicate({ mediaId: task.mediaId, hlsOutputMethod: task.hlsOutputMethod })) return null;
     this.failed.splice(fromFailedIndex, 1);
     const retry = { ...task, status: DOWNLOAD_STATUSES.QUEUED, lastError: null, cancelRequested: false };
     this.pending.push(retry);
@@ -54,8 +59,8 @@ export class QueueManager {
   }
 
   updateProgress(taskId, progress = {}) {
-    const task = this.active.get(taskId) || this.taskIndex.get(taskId);
-    if (!task) return false;
+    const task = this.active.get(taskId);
+    if (!task || task.cancelRequested) return false;
     const nextProgress = normalizeProgress(progress);
     task.progress = { ...(task.progress || {}), ...nextProgress };
     if (nextProgress.phase === 'remuxing') task.status = DOWNLOAD_STATUSES.CONVERTING || DOWNLOAD_STATUSES.ACTIVE;
@@ -73,7 +78,7 @@ export class QueueManager {
       const [task] = this.pending.splice(pendingIndex, 1);
       task.cancelRequested = true;
       task.status = DOWNLOAD_STATUSES.CANCELED;
-      this.canceled.unshift(task);
+      this._addSettled('canceled', task);
       try { this.onTaskSettled(task); } catch (_error) {}
       this._changed({ forcePersist: true });
       return true;
@@ -107,9 +112,9 @@ export class QueueManager {
       ...safeHistoryList(history.canceled).map((task) => hydrateHistoryTask(task, DOWNLOAD_STATUSES.CANCELED))
     ];
     if (!(completed.length || failed.length || canceled.length || history.paused)) return false;
-    this.completed = completed.slice(0, 20);
-    this.failed = failed.slice(0, 20);
-    this.canceled = canceled.slice(0, 20);
+    this.completed = completed.slice(0, MAX_SETTLED_TASKS_PER_BUCKET);
+    this.failed = failed.slice(0, MAX_SETTLED_TASKS_PER_BUCKET);
+    this.canceled = canceled.slice(0, MAX_SETTLED_TASKS_PER_BUCKET);
     this.paused = Boolean(history.paused);
     this.taskIndex = new Map([
       ...this.completed,
@@ -140,6 +145,23 @@ export class QueueManager {
     return cleared;
   }
 
+  async clearPersistedHistory() {
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer);
+      this.persistTimer = null;
+    }
+    this.pendingPersistState = null;
+
+    // Put the explicit clear behind every already-started snapshot write. This
+    // prevents an older asynchronous save from landing after the user's clear
+    // request and resurrecting stale queue metadata.
+    const clearOperation = this.persistChain
+      .catch(() => undefined)
+      .then(() => clearStoredQueueHistory());
+    this.persistChain = clearOperation.catch(() => undefined);
+    return clearOperation;
+  }
+
   cancelByTabId(tabId, reason = 'Source tab was closed.') {
     return this.cancelByTabIdWhere(tabId, reason, () => true);
   }
@@ -153,7 +175,7 @@ export class QueueManager {
         task.cancelRequested = true;
         task.status = DOWNLOAD_STATUSES.CANCELED;
         task.lastError = { category: ERROR_CATEGORIES.USER_CANCELED, code: 'source-tab-unavailable', message: reason, strategy: '' };
-        this.canceled.unshift(task);
+        this._addSettled('canceled', task);
         try { this.onTaskSettled(task); } catch (_error) {}
         canceled += 1;
       } else {
@@ -194,9 +216,9 @@ export class QueueManager {
       paused: this.paused,
       pending: this.pending.map(publicTask),
       active: Array.from(this.active.values()).map(publicTask),
-      completed: this.completed.slice(0, 20).map(publicTask),
-      failed: this.failed.slice(0, 20).map(publicTask),
-      canceled: this.canceled.slice(0, 20).map(publicTask)
+      completed: this.completed.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(publicTask),
+      failed: this.failed.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(publicTask),
+      canceled: this.canceled.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(publicTask)
     };
   }
 
@@ -231,6 +253,9 @@ export class QueueManager {
     try {
       if (task.cancelRequested) throw { category: ERROR_CATEGORIES.USER_CANCELED, code: 'canceled', message: 'Canceled before start.' };
       const result = await this.worker(task);
+      if (task.cancelRequested) {
+        throw task.lastError || { category: ERROR_CATEGORIES.USER_CANCELED, code: 'canceled', message: 'Canceled before completion.' };
+      }
       this.active.delete(task.id);
       task.result = result;
       task.status = result?.status === DOWNLOAD_STATUSES.VERIFY_UNCERTAIN ? DOWNLOAD_STATUSES.VERIFY_UNCERTAIN : DOWNLOAD_STATUSES.COMPLETED;
@@ -243,7 +268,7 @@ export class QueueManager {
           : 'Completed',
         updatedAt: new Date().toISOString()
       };
-      this.completed.unshift(task);
+      this._addSettled('completed', task);
     } catch (error) {
       this.active.delete(task.id);
       task.lastError = normalizeError(error);
@@ -253,8 +278,8 @@ export class QueueManager {
         this.pending.push(task);
       } else {
         task.status = task.cancelRequested ? DOWNLOAD_STATUSES.CANCELED : DOWNLOAD_STATUSES.FAILED;
-        if (task.status === DOWNLOAD_STATUSES.CANCELED) this.canceled.unshift(task);
-        else this.failed.unshift(task);
+        if (task.status === DOWNLOAD_STATUSES.CANCELED) this._addSettled('canceled', task);
+        else this._addSettled('failed', task);
       }
     } finally {
       try { this.onTaskSettled(task); } catch (_error) {}
@@ -267,32 +292,62 @@ export class QueueManager {
     const { persist = true, forcePersist = false } = options;
     const state = this.getState();
     if (persist) this._persistState(state, forcePersist);
-    this.onChange(state);
+    try { this.onChange(state); } catch (_error) {}
+  }
+
+  _addSettled(bucket, task) {
+    const list = this[bucket];
+    if (!Array.isArray(list)) return;
+    list.unshift(task);
+    const removed = list.splice(MAX_SETTLED_TASKS_PER_BUCKET);
+    for (const staleTask of removed) {
+      if (this.taskIndex.get(staleTask?.id) !== staleTask) continue;
+      if (this._isTaskRetained(staleTask.id)) continue;
+      this.taskIndex.delete(staleTask.id);
+    }
+  }
+
+  _isTaskRetained(taskId) {
+    if (!taskId) return false;
+    if (this.active.has(taskId) || this.pending.some((task) => task.id === taskId)) return true;
+    return [this.completed, this.failed, this.canceled].some((list) => list.some((task) => task.id === taskId));
   }
 
   _persistState(state, force = false) {
     if (!this.hasEverHadTask && isEmptyQueueState(state)) return;
+    this.pendingPersistState = state;
     const now = Date.now();
     const write = () => {
+      const latestState = this.pendingPersistState;
+      if (!latestState) return;
+      this.pendingPersistState = null;
       this.lastPersistAt = Date.now();
       const summary = {
-        activeCount: state.activeCount,
-        pendingCount: state.pending.length,
-        completedCount: state.completed.length,
-        failedCount: state.failed.length,
-        canceledCount: state.canceled.length,
-        paused: Boolean(state.paused)
+        activeCount: latestState.activeCount,
+        pendingCount: latestState.pending.length,
+        completedCount: latestState.completed.length,
+        failedCount: latestState.failed.length,
+        canceledCount: latestState.canceled.length,
+        paused: Boolean(latestState.paused)
       };
-      saveQueueSummary(summary).catch(() => undefined);
-      saveQueueHistory({
+      const history = {
         ...summary,
-        completed: state.completed.slice(0, 20).map(persistedTask),
-        failed: state.failed.slice(0, 20).map(persistedTask),
-        canceled: state.canceled.slice(0, 20).map(persistedTask),
-        active: state.active.slice(0, 20).map(persistedTask),
-        pending: state.pending.slice(0, 20).map(persistedTask),
-        paused: Boolean(state.paused)
-      }).catch(() => undefined);
+        completed: latestState.completed.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(persistedTask),
+        failed: latestState.failed.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(persistedTask),
+        canceled: latestState.canceled.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(persistedTask),
+        active: latestState.active.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(persistedTask),
+        pending: latestState.pending.slice(0, MAX_SETTLED_TASKS_PER_BUCKET).map(persistedTask),
+        paused: Boolean(latestState.paused)
+      };
+      // Serialize writes so an older asynchronous storage operation cannot land
+      // after a newer queue snapshot and resurrect stale work on restart.
+      this.persistChain = this.persistChain
+        .catch(() => undefined)
+        .then(async () => {
+          await saveQueueSummary(summary);
+          await saveQueueHistory(history);
+        })
+        .catch(() => undefined);
     };
 
     if (force || now - this.lastPersistAt > 2000) {
@@ -310,6 +365,11 @@ export class QueueManager {
       }, Math.max(250, 2000 - (now - this.lastPersistAt)));
     }
   }
+}
+
+function normalizeParallelism(value) {
+  const numeric = Number(value);
+  return Math.min(MAX_PARALLEL_MAX, Math.max(MAX_PARALLEL_MIN, Number.isFinite(numeric) ? Math.round(numeric) : DEFAULT_SETTINGS.maxParallelDownloads));
 }
 
 
@@ -387,20 +447,27 @@ function hasRunnableMedia(task = {}) {
 
 function normalizeProgress(progress = {}) {
   const percent = Number(progress.percent);
+  const updatedAt = String(progress.updatedAt || '');
   return {
-    phase: String(progress.phase || 'working'),
-    loaded: Number.isFinite(Number(progress.loaded)) ? Number(progress.loaded) : null,
-    total: Number.isFinite(Number(progress.total)) ? Number(progress.total) : null,
+    phase: String(progress.phase || 'working').slice(0, 64),
+    loaded: nonNegativeNumber(progress.loaded),
+    total: nonNegativeNumber(progress.total),
     percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0,
-    detail: String(progress.detail || ''),
-    bytes: Number.isFinite(Number(progress.bytes)) ? Number(progress.bytes) : null,
-    workers: Number.isFinite(Number(progress.workers)) ? Number(progress.workers) : null,
-    activeWorkers: Number.isFinite(Number(progress.activeWorkers)) ? Number(progress.activeWorkers) : null,
-    retries: Number.isFinite(Number(progress.retries)) ? Number(progress.retries) : null,
-    averageBytesPerSecond: Number.isFinite(Number(progress.averageBytesPerSecond)) ? Number(progress.averageBytesPerSecond) : null,
-    peakConcurrency: Number.isFinite(Number(progress.peakConcurrency)) ? Number(progress.peakConcurrency) : null,
-    updatedAt: progress.updatedAt || new Date().toISOString()
+    detail: String(progress.detail || '').slice(0, 600),
+    bytes: nonNegativeNumber(progress.bytes),
+    workers: nonNegativeNumber(progress.workers),
+    activeWorkers: nonNegativeNumber(progress.activeWorkers),
+    retries: nonNegativeNumber(progress.retries),
+    averageBytesPerSecond: nonNegativeNumber(progress.averageBytesPerSecond),
+    peakConcurrency: nonNegativeNumber(progress.peakConcurrency),
+    updatedAt: /^\d{4}-\d{2}-\d{2}T/.test(updatedAt) ? updatedAt.slice(0, 40) : new Date().toISOString()
   };
+}
+
+function nonNegativeNumber(value) {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
 
@@ -482,7 +549,7 @@ function sanitizeResult(result = {}) {
 
 
 function safeHistoryList(value) {
-  return Array.isArray(value) ? value.slice(0, 20) : [];
+  return Array.isArray(value) ? value.slice(0, MAX_SETTLED_TASKS_PER_BUCKET) : [];
 }
 
 function hydrateHistoryTask(task = {}, fallbackStatus = DOWNLOAD_STATUSES.CANCELED) {

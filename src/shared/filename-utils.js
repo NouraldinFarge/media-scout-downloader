@@ -11,7 +11,7 @@ export function sanitizeFilenamePart(value, fallback = 'media') {
   return text.slice(0, MAX_FILENAME_LENGTH).trim() || fallback;
 }
 
-export function sanitizeSubfolder(value) {
+function sanitizeSubfolder(value) {
   return String(value || '')
     .split(/[\\/]+/)
     .map((part) => sanitizeFilenamePart(part, 'Downloads'))
@@ -51,7 +51,7 @@ export function extractBookTitleBracketText(value) {
  * Prefer `《...》` content from the tab title, then the full tab title, then a
  * media-provided title, finally a stable fallback.
  */
-export function getPreferredTabTitleForFilename(tab, media) {
+function getPreferredTabTitleForFilename(tab, media) {
   const rawTabTitle = tab?.title || '';
   return extractBookTitleBracketText(rawTabTitle) || rawTabTitle || media?.title || 'Untitled tab';
 }

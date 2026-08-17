@@ -2,7 +2,7 @@ import { DOWNLOAD_STATUSES, ERROR_CATEGORIES, MEDIA_TYPES } from './constants.js
 import { MEDIA_TYPE_REGISTRY } from './media-type-registry.js';
 import { getHostname, nowISO, stableHash } from './utils.js';
 
-const REPORT_SCHEMA_VERSION = 5;
+const REPORT_SCHEMA_VERSION = 6;
 
 /**
  * Returns a human-safe URL summary for logs/reports while preserving enough detail
@@ -18,11 +18,11 @@ export function summarizeUrl(rawUrl = '') {
       hostname: url.hostname,
       pathnameExtension: extensionFromPath(url.pathname),
       pathHash: stableHash(url.pathname || '/'),
-      queryParameterNames: Array.from(url.searchParams.keys()).sort(),
+      queryParameterCount: Array.from(url.searchParams.keys()).length,
       urlHash: stableHash(url.toString())
     };
   } catch (_error) {
-    return { protocol: '', hostname: '', pathnameExtension: '', pathHash: '', queryParameterNames: [], urlHash: stableHash(rawUrl) };
+    return { protocol: '', hostname: '', pathnameExtension: '', pathHash: '', queryParameterCount: 0, urlHash: stableHash(rawUrl) };
   }
 }
 
@@ -41,7 +41,7 @@ export function buildReportReadme(mode = 'redacted') {
     '',
     'Privacy note:',
     '- The extension does not upload this report anywhere.',
-    mode === 'full' ? '- This ZIP may contain the active tab URL and candidate media URLs because you explicitly allowed a full report.' : '- This ZIP redacts full URLs by default. It keeps hostnames, path hashes, and query parameter names for debugging without retaining full addresses.',
+    mode === 'full' ? '- This ZIP may contain the active tab URL and candidate media URLs because you explicitly allowed a full report.' : '- This ZIP redacts full URLs by default. It keeps hostnames, path hashes, and query-parameter counts for debugging without retaining full addresses.',
     '- Review the files before sharing them with anyone; page titles, hostnames, filenames, and diagnostic context can still be sensitive.',
     '',
     'Useful files:',
@@ -158,7 +158,7 @@ export function buildDecisionLog(detailedScan = {}) {
   }));
 }
 
-export function buildExtensionState({ state, settings, diagnostics, siteAccess, selfTests, generatedAt, persistedQueueHistory }) {
+export function buildExtensionState({ state, settings, diagnostics, siteAccess, selfTests, generatedAt, persistedQueueHistory, allowSensitiveUrls = false }) {
   return {
     schemaVersion: REPORT_SCHEMA_VERSION,
     generatedAt,
@@ -172,7 +172,9 @@ export function buildExtensionState({ state, settings, diagnostics, siteAccess, 
       generatedLocally: true,
       uploadedByExtension: false,
       fullUrlsStoredInDiagnostics: false,
-      note: 'This on-demand ZIP may contain full URLs because the user requested a detailed local report.'
+      note: allowSensitiveUrls
+        ? 'This on-demand ZIP may contain full URLs because the user explicitly enabled them.'
+        : 'This on-demand ZIP redacts full URLs and secret-shaped fields by default; review page-visible context before sharing.'
     }
   };
 }

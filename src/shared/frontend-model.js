@@ -56,7 +56,7 @@ export function queueTaskList(queue = {}) {
   ];
 }
 
-export function activeQueueTask(queue = {}) {
+function activeQueueTask(queue = {}) {
   const q = normalizeQueue(queue);
   return q.active[0] || q.pending[0] || q.failed[0] || null;
 }
@@ -136,7 +136,7 @@ export function classifyCandidate(item = {}, settings = {}, options = {}) {
   return { key: 'unsupported', label: CAPABILITY_LABELS.unsupported, action: 'inspect', reason: decision.reason || item.unsupportedReason || 'No safe supported download action is available.' };
 }
 
-export function chooseBestCandidate(items = [], settings = {}, options = {}) {
+function chooseBestCandidate(items = [], settings = {}, options = {}) {
   const list = asArray(items).filter(Boolean);
   if (!list.length) return null;
   const scored = list.map((item, index) => {
@@ -304,7 +304,7 @@ export function summarizeCandidate(item = {}) {
   return parts.join(' • ') || 'browser-visible media candidate';
 }
 
-export function mediaTypeLabel(type = '') {
+function mediaTypeLabel(type = '') {
   return {
     [MEDIA_TYPES.HLS]: 'HLS playlist',
     [MEDIA_TYPES.VIDEO]: 'Video file',
@@ -345,7 +345,7 @@ export function redactedUrl(rawUrl = '') {
   }
 }
 
-export function redactHost(host = '') {
+function redactHost(host = '') {
   return String(host || '').replace(/^(www\.)/i, '');
 }
 
@@ -365,7 +365,7 @@ export function newestMediaTimestamp(items = []) {
   return new Date(Math.max(...times)).toISOString();
 }
 
-export function isStaleMedia(items = []) {
+function isStaleMedia(items = []) {
   const timestamp = newestMediaTimestamp(items);
   if (!timestamp) return false;
   const ageMs = Date.now() - Date.parse(timestamp);
@@ -385,7 +385,7 @@ export function groupCandidates(items = [], settings = {}) {
     .map(([key, groupItems]) => ({ key, label: mediaGroupLabel(key), items: groupItems.sort((a, b) => sortCandidates(a, b, settings)) }));
 }
 
-export function mediaGroupLabel(group) {
+function mediaGroupLabel(group) {
   return {
     [MEDIA_TYPES.HLS]: 'HLS playlists',
     [MEDIA_TYPES.VIDEO]: 'Video files',
@@ -419,7 +419,7 @@ export function candidateFacts(item = {}) {
   return rows.filter(([, value]) => value != null && value !== '');
 }
 
-export function formatDuration(seconds) {
+function formatDuration(seconds) {
   const value = Number(seconds);
   if (!Number.isFinite(value) || value <= 0) return '';
   const rounded = Math.round(value);
@@ -429,7 +429,7 @@ export function formatDuration(seconds) {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export function sourceLabel(source = '') {
+function sourceLabel(source = '') {
   return String(source || '').replace('dom-', 'page ').replace('response-header', 'headers').replace(/-/g, ' ');
 }
 

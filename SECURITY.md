@@ -2,7 +2,7 @@
 
 ## Supported state
 
-Version 3.7.11 is a private release-readiness candidate. It is not yet a supported public release.
+Version 3.7.12 is a private release-readiness candidate. It is not yet a supported public release.
 
 ## Reporting
 

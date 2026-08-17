@@ -2,9 +2,12 @@ import { DOWNLOAD_STATUSES, MEDIA_TYPES } from '../shared/constants.js';
 import { makeMediaId, nowISO } from '../shared/utils.js';
 import { buildDownloadAllowSummary } from '../shared/download-allow-list.js';
 
+export const MAX_MEDIA_ITEMS_PER_TAB = 750;
+
 export class TabMediaStore {
   constructor() {
     this.tabs = new Map();
+    this.tabRevisions = new Map();
   }
 
   setTabInfo(tab) {
@@ -12,43 +15,47 @@ export class TabMediaStore {
     const state = this._getTabState(tab.id);
     state.tab = {
       id: tab.id,
-      title: tab.title || 'Untitled tab',
-      url: tab.url || ''
+      title: String(tab.title || 'Untitled tab').slice(0, 500),
+      url: String(tab.url || '').slice(0, 4096)
     };
     this.tabs.set(tab.id, state);
   }
 
-  addMedia(tabId, item) {
+  addMedia(tabId, item, { updateBadge = true } = {}) {
     if (!Number.isInteger(tabId) || !item?.normalizedUrl) return null;
     const state = this._getTabState(tabId);
     const id = item.id || makeMediaId(tabId, item.normalizedUrl, item.mediaType);
     const existing = state.items.get(id);
+    if (!existing && state.items.size >= MAX_MEDIA_ITEMS_PER_TAB && !makeRoomForMediaItem(state.items, item)) return null;
     const merged = {
       ...(existing || {}),
       ...item,
       id,
       tabId,
       status: item.status || (item.isProtected ? DOWNLOAD_STATUSES.UNSUPPORTED : (existing?.status || DOWNLOAD_STATUSES.DETECTED)),
-      detectionMethods: Array.from(new Set([...(existing?.detectionMethods || []), ...(item.detectionMethods || [])])),
+      detectionMethods: Array.from(new Set([...(existing?.detectionMethods || []), ...(item.detectionMethods || [])])).slice(0, 32),
       detectedAt: existing?.detectedAt || item.detectedAt || nowISO(),
       updatedAt: nowISO()
     };
     if (existing?.variants || item.variants) merged.variants = item.variants || existing.variants;
     if (existing?.representations || item.representations) merged.representations = item.representations || existing.representations;
+    preserveStrongerProtectionEvidence(merged, existing, item);
     applyDownloadAllowSummary(merged);
     state.items.set(id, merged);
     this.tabs.set(tabId, state);
-    this.updateBadge(tabId).catch(() => undefined);
+    if (updateBadge) this.updateBadge(tabId).catch(() => undefined);
     return merged;
   }
 
   addMany(tabId, items = []) {
     const added = [];
     for (const item of items) {
-      const result = this.addMedia(tabId, item);
+      const result = this.addMedia(tabId, item, { updateBadge: false });
       if (result) added.push(result);
     }
-    return added;
+    if (added.length) this.updateBadge(tabId).catch(() => undefined);
+    const retained = this.tabs.get(tabId)?.items;
+    return retained ? added.filter((item) => retained.get(item.id) === item) : [];
   }
 
   getMedia(tabId, mediaId) {
@@ -107,13 +114,23 @@ export class TabMediaStore {
     };
   }
 
+  getTabRevision(tabId) {
+    return this.tabRevisions.get(tabId) || 0;
+  }
+
+  isTabRevisionCurrent(tabId, revision) {
+    return this.getTabRevision(tabId) === revision;
+  }
+
   clearTab(tabId) {
+    this.tabRevisions.set(tabId, this.getTabRevision(tabId) + 1);
     this.tabs.delete(tabId);
     this.updateBadge(tabId).catch(() => undefined);
   }
 
   clearAll() {
     const tabIds = Array.from(this.tabs.keys());
+    for (const tabId of tabIds) this.tabRevisions.set(tabId, this.getTabRevision(tabId) + 1);
     this.tabs.clear();
     for (const tabId of tabIds) this.updateBadge(tabId).catch(() => undefined);
   }
@@ -121,13 +138,53 @@ export class TabMediaStore {
   async updateBadge(tabId) {
     if (!chrome.action || tabId == null) return;
     const count = this.tabs.get(tabId)?.items.size || 0;
-    await chrome.action.setBadgeText({ tabId, text: count ? String(count) : '' });
+    const badgeText = count > 999 ? '999+' : (count ? String(count) : '');
+    await chrome.action.setBadgeText({ tabId, text: badgeText });
     await chrome.action.setBadgeBackgroundColor({ tabId, color: '#22c55e' });
   }
 
   _getTabState(tabId) {
     return this.tabs.get(tabId) || { tab: { id: tabId, title: 'Untitled tab', url: '' }, items: new Map() };
   }
+}
+
+function makeRoomForMediaItem(items, incoming) {
+  const incomingPriority = mediaRetentionPriority(incoming);
+  let evictionId = null;
+  let evictionPriority = -Infinity;
+  for (const [id, item] of items.entries()) {
+    const priority = mediaRetentionPriority(item);
+    if (priority <= evictionPriority) continue;
+    evictionPriority = priority;
+    evictionId = id;
+  }
+  if (evictionId == null || incomingPriority > evictionPriority) return false;
+  items.delete(evictionId);
+  return true;
+}
+
+function mediaRetentionPriority(item = {}) {
+  if (item.isProtected || item.status === DOWNLOAD_STATUSES.ENCRYPTED) return -1;
+  if (item.mediaType === MEDIA_TYPES.HLS || item.mediaType === MEDIA_TYPES.DASH) return 0;
+  if (item.mediaType === MEDIA_TYPES.VIDEO || item.mediaType === MEDIA_TYPES.AUDIO) return 1;
+  if (item.mediaType === MEDIA_TYPES.STREAM || item.mediaType === MEDIA_TYPES.PLAYLIST) return 2;
+  if (item.mediaType === MEDIA_TYPES.SUBTITLE || item.mediaType === MEDIA_TYPES.METADATA) return 3;
+  if (item.mediaType === MEDIA_TYPES.SEGMENT) return 4;
+  if (item.mediaType === MEDIA_TYPES.IMAGE) return 5;
+  return 6;
+}
+
+function preserveStrongerProtectionEvidence(merged, existing = null, incoming = null) {
+  if (!existing || protectionPriority(existing) <= protectionPriority(incoming)) return;
+  for (const key of ['isProtected', 'status', 'unsupportedReason', 'safetyWarning', 'playlistProbe', 'playlist', 'selectedVariant', 'manifest']) {
+    if (Object.prototype.hasOwnProperty.call(existing, key)) merged[key] = existing[key];
+  }
+}
+
+function protectionPriority(item = {}) {
+  if (item?.status === DOWNLOAD_STATUSES.ENCRYPTED) return 3;
+  if (item?.isProtected && item?.status === DOWNLOAD_STATUSES.UNSUPPORTED) return 2;
+  return item?.isProtected ? 1 : 0;
 }
 
 

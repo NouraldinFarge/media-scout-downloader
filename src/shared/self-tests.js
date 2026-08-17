@@ -1,11 +1,11 @@
-import { DEFAULT_SETTINGS, DOWNLOAD_STATUSES, ERROR_CATEGORIES, HLS_OUTPUT_METHODS, HLS_VARIANT_PREFERENCES, MEDIA_TYPES, MESSAGE_TYPES, SOURCES, STRATEGY_NAMES } from './constants.js';
+import { DEFAULT_SETTINGS, DOWNLOAD_STATUSES, DUPLICATE_BEHAVIORS, ERROR_CATEGORIES, HLS_OUTPUT_METHODS, HLS_VARIANT_PREFERENCES, MEDIA_TYPES, MESSAGE_TYPES, SOURCES, STRATEGY_NAMES } from './constants.js';
 import { buildFilename, extractBookTitleBracketText, sanitizeFilenamePart } from './filename-utils.js';
 import { mergeSettings } from './storage-utils.js';
 import { validateMediaUrl, validateMessage, canRetryCategory, isContentScriptMessageType, isPrivilegedExtensionMessageType } from './validators.js';
 import { buildDownloadAllowSummary, getDownloadAllowDecision } from './download-allow-list.js';
 import { buildPopupModel, classifyCandidate, downloadDecisionFor, filenamePreview, taskVisibleCopy } from './frontend-model.js';
 import { probeHasSelfContainedVariant } from '../background/tab-media-store.js';
-import { orderedStrategiesForMedia } from '../background/download-strategies.js';
+import { orderedStrategiesForMedia, shellQuote } from '../background/download-strategies.js';
 import { parseHlsInspection } from '../background/media-detector.js';
 
 function assert(condition, message) {
@@ -45,15 +45,24 @@ function testMessageValidation() {
   assert(validateMessage({ type: MESSAGE_TYPES.START_DOWNLOAD, tabId: 1, mediaId: 'media-1' }), 'start download message requires a tab and media id');
   assert(!validateMessage({ type: MESSAGE_TYPES.START_DOWNLOAD, tabId: 1, mediaId: 'media-1', hlsOutputMethod: HLS_OUTPUT_METHODS.FMP4_ASSEMBLY }), 'planned HLS modes are not valid user-facing start methods');
   assert(!validateMessage({ type: MESSAGE_TYPES.CONVERT_M3U8_TO_MP4, url: 'https://example.com/v.m3u8', hlsOutputMethod: HLS_OUTPUT_METHODS.VISIBLE_RECORDING }), 'planned HLS modes are not valid manual converter methods');
+  assert(!validateMessage({ type: MESSAGE_TYPES.CONVERT_M3U8_TO_MP4, url: 'https://example.com/v.m3u8', filename: 'x'.repeat(241) }), 'manual converter rejects oversized filenames');
+  assert(!validateMessage({ type: MESSAGE_TYPES.CONVERT_M3U8_TO_MP4, url: 'file:///private/video.m3u8' }), 'manual converter accepts only HTTP(S) playlists');
   assert(validateMessage({ type: MESSAGE_TYPES.START_EPISODE_BATCH_DOWNLOADS, episodes: [{ url: 'https://example.com/show/1', episodeNumber: 1, title: 'One' }] }), 'episode batch message accepts bounded http episode entries');
   assert(!validateMessage({ type: MESSAGE_TYPES.START_EPISODE_BATCH_DOWNLOADS, episodes: [{ url: 'javascript:alert(1)', episodeNumber: 1 }] }), 'episode batch message rejects unsafe episode URLs');
   assert(validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { debugLogs: true } }), 'settings save accepts known setting payloads');
   assert(validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: DEFAULT_SETTINGS }), 'settings save accepts a complete options-page payload');
   assert(validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { enabledFileTypes: DEFAULT_SETTINGS.enabledFileTypes } }), 'settings save accepts the full file-type registry payload');
   assert(!validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { unexpectedSetting: true } }), 'settings save rejects unknown setting keys');
+  assert(!validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE }), 'settings save requires a settings object');
+  assert(!validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { debugLogs: 'true' } }), 'settings save rejects non-boolean flags');
+  assert(!validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { maxParallelDownloads: '3' } }), 'settings save rejects numeric values encoded as strings');
+  assert(!validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { duplicateBehavior: 'replace-anything' } }), 'settings save rejects unknown duplicate behavior');
   assert(!validateMessage({ type: MESSAGE_TYPES.SETTINGS_SAVE, settings: { enabledFileTypes: { definitelyNotARealMediaType: true } } }), 'settings save rejects unknown file-type keys');
   assert(validateMessage({ type: MESSAGE_TYPES.DOM_MEDIA_FOUND, items: [{ url: 'https://example.com/video.mp4', source: 'dom-video' }] }), 'DOM media messages accept bounded scan items');
+  assert(!validateMessage({ type: MESSAGE_TYPES.DOM_MEDIA_FOUND, items: [{ url: 'javascript:alert(1).mp4', source: 'dom-video' }] }), 'DOM media messages reject unsafe URL schemes');
   assert(!validateMessage({ type: MESSAGE_TYPES.DOM_MEDIA_FOUND, items: [{ url: `https://example.com/${'x'.repeat(5000)}.mp4` }] }), 'DOM media messages reject oversized scan URLs');
+  assert(!validateMessage({ type: MESSAGE_TYPES.BLOB_DOWNLOAD_REQUEST, url: 'blob:https://example.com/id', filename: { unsafe: true } }), 'blob messages reject non-string filenames');
+  assert(!validateMessage({ type: MESSAGE_TYPES.BLOB_DOWNLOAD_REQUEST, url: 'https://example.com/video.mp4', filename: 'video.mp4' }), 'blob messages require a page-local blob URL');
   assert(!validateMessage({ type: MESSAGE_TYPES.START_DOWNLOAD, mediaId: 'media-1' }), 'start download message without tab id is invalid');
   assert(!validateMessage({ type: MESSAGE_TYPES.DOWNLOAD_PROGRESS, taskId: 'task-1', percent: 120 }), 'out-of-range download progress is invalid');
   assert(!validateMessage({ type: 'NOPE' }), 'unknown messages are invalid');
@@ -80,6 +89,15 @@ function testStorageDefaults() {
   assert(mergeSettings({ hlsOutputMethod: HLS_OUTPUT_METHODS.SEPARATE_AUDIO_MERGE }).hlsOutputMethod === DEFAULT_SETTINGS.hlsOutputMethod, 'planned HLS output modes fall back safely');
   assert(!Object.prototype.hasOwnProperty.call(mergeSettings({ unexpectedSetting: true }), 'unexpectedSetting'), 'unknown settings are dropped before storage');
   assert(mergeSettings({ filenameTemplate: 'x'.repeat(300) }).filenameTemplate.length === 180, 'filename template setting is length-limited');
+  assert(mergeSettings({ preferredSubfolder: '' }).preferredSubfolder === '', 'an empty preferred subfolder remains empty');
+  assert(mergeSettings({ maxParallelDownloads: 2.6 }).maxParallelDownloads === 3, 'fractional parallelism is normalized to a whole number');
+  assert(mergeSettings({ duplicateBehavior: 'replace-anything' }).duplicateBehavior === DUPLICATE_BEHAVIORS.AUTO_NUMBER, 'invalid duplicate behavior falls back safely');
+  assert(mergeSettings({ includeSensitiveUrlsInReports: 'false' }).includeSensitiveUrlsInReports === false, 'corrupt string values cannot opt reports into sensitive URLs');
+  assert(mergeSettings({ maxParallelDownloads: '' }).maxParallelDownloads === DEFAULT_SETTINGS.maxParallelDownloads, 'empty numeric values fall back to defaults');
+}
+
+function testCommandEscaping() {
+  assert(shellQuote("a'b $HOME `whoami`") === "'a'\\''b $HOME `whoami`'", 'external-helper shell arguments use POSIX-safe single-quote escaping');
 }
 
 
@@ -310,6 +328,7 @@ export function runSelfTests() {
     testDownloadAllowList,
     testFrontendTruthModel,
     testStrategyOrdering,
+    testCommandEscaping,
     testRetryPolicy
   ];
   const results = [];

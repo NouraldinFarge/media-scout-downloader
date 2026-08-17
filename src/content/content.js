@@ -39,8 +39,12 @@
   };
 
   const MAX_HLS_SEGMENTS = 6000;
+  const MAX_HLS_VARIANTS = 200;
+  const MAX_HLS_AUDIO_RENDITIONS = 100;
   const MAX_HLS_BYTES = 768 * 1024 * 1024; // Blob-based merge/remux is memory-bound; keep a safer browser cap.
   const MAX_HLS_ESTIMATED_BYTES = Math.floor(MAX_HLS_BYTES * 0.85);
+  const MAX_HLS_PLAYLIST_BYTES = 4 * 1024 * 1024;
+  const MAX_HLS_SEGMENT_BYTES = 64 * 1024 * 1024;
   const DEFAULT_SEGMENT_PARALLELISM = 4;
   const MAX_SEGMENT_PARALLELISM = 16;
   const DEFAULT_SEGMENT_RETRY_LIMIT = 2;
@@ -55,11 +59,13 @@
   const SEGMENT_PROGRESS_INTERVAL_MS = 550;
   const SEGMENT_FETCH_TIMEOUT_MS = 45_000;
   const YIELD_EVERY_COMPLETIONS = 16;
+  const AUTO_SCAN_THROTTLE_MS = 1500;
   const activeHlsTasks = new Map();
   let scanTimer = null;
   let loadTimer = null;
   let mutationObserver = null;
   let resourceObserver = null;
+  let lastScanAt = 0;
 
   globalThis.__mediaScoutCleanup = () => {
     try { if (scanTimer) clearTimeout(scanTimer); } catch (_error) {}
@@ -81,62 +87,23 @@
     mutationObserver = null;
     try { resourceObserver?.disconnect?.(); } catch (_error) {}
     resourceObserver = null;
-    try { document.getElementById('__media_scout_overlay_root')?.remove?.(); } catch (_error) {}
     globalThis.__mediaScoutContentLoaded = false;
     return true;
   };
 
   function scanAndSend() {
-    const items = globalThis.MediaScoutPageScanner?.scan?.() || [];
+    lastScanAt = Date.now();
+    const items = (globalThis.MediaScoutPageScanner?.scan?.() || []).slice(0, 500);
     if (items.length) chrome.runtime.sendMessage({ type: MESSAGE_TYPES.DOM_MEDIA_FOUND, items }).catch(() => undefined);
     return items;
   }
-
-
-
-  function showScoutOverlay(count = 0) {
-    try {
-      const existing = document.getElementById('__media_scout_overlay_root');
-      if (existing) existing.remove();
-      const host = document.createElement('div');
-      host.id = '__media_scout_overlay_root';
-      host.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;pointer-events:none;';
-      const shadow = host.attachShadow({ mode: 'closed' });
-      const wrap = document.createElement('div');
-      wrap.setAttribute('role', 'status');
-      wrap.style.cssText = 'pointer-events:auto;display:flex;align-items:center;gap:8px;max-width:280px;padding:10px 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:#10141D;color:#F4F7FB;box-shadow:0 12px 38px rgba(0,0,0,.38);font:600 12px system-ui,-apple-system,Segoe UI,sans-serif;';
-      const text = document.createElement('span');
-      text.textContent = count ? `Media Scout found ${count} item${count === 1 ? '' : 's'}.` : 'Media Scout scanned. Play media, then rescan.';
-      const rescan = document.createElement('button');
-      rescan.type = 'button';
-      rescan.textContent = 'Rescan';
-      rescan.style.cssText = 'border:1px solid rgba(255,255,255,.18);border-radius:999px;background:transparent;color:#00D4FF;padding:4px 8px;font:700 12px system-ui;cursor:pointer;';
-      rescan.addEventListener('click', () => {
-        const items = scanAndSend();
-        text.textContent = items.length ? `Media Scout found ${items.length} item${items.length === 1 ? '' : 's'}.` : 'No media request yet. Start playback and rescan.';
-      });
-      const close = document.createElement('button');
-      close.type = 'button';
-      close.setAttribute('aria-label', 'Dismiss Media Scout hint');
-      close.textContent = '×';
-      close.style.cssText = 'border:0;background:transparent;color:#9CA7B8;padding:3px 6px;font:700 15px system-ui;cursor:pointer;';
-      close.addEventListener('click', () => host.remove());
-      wrap.append(text, rescan, close);
-      shadow.append(wrap);
-      document.documentElement.append(host);
-      setTimeout(() => host.remove(), 6500);
-    } catch (_error) {
-      // Overlay is decorative; scanning must never depend on it.
-    }
-  }
-
   function debouncedScan() {
-    if (scanTimer) clearTimeout(scanTimer);
+    if (scanTimer) return;
+    const delay = Math.max(350, AUTO_SCAN_THROTTLE_MS - (Date.now() - lastScanAt));
     scanTimer = setTimeout(() => {
       scanTimer = null;
-      const items = scanAndSend();
-      showScoutOverlay(items.length);
-    }, 350);
+      scanAndSend();
+    }, delay);
   }
 
   function handleWindowLoad() {
@@ -158,7 +125,6 @@
   function handleRuntimeMessage(message, _sender, sendResponse) {
     if (message?.type === MESSAGE_TYPES.SCAN_PAGE_MEDIA) {
       const items = scanAndSend();
-      showScoutOverlay(items.length);
       sendResponse({ items });
       return false;
     }
@@ -220,6 +186,8 @@
       playlist.selectedVariantPreference = normalizeVariantPreference(message.hlsVariantPreference);
 
       if (playlist.encrypted) return fail(ERROR_CATEGORIES.ENCRYPTED, 'encrypted-hls', 'Encrypted HLS playlists are not merged.');
+      const rootStructureLimit = getPlaylistStructureLimitReason(playlist);
+      if (rootStructureLimit) return fail(ERROR_CATEGORIES.UNSUPPORTED, rootStructureLimit.code, rootStructureLimit.message, rootStructureLimit.details);
       if (!playlist.variants.length) {
         const mediaPlaylistProtectedUri = protectedPlaylistUriReason(playlist, selectedPlaylistUrl);
         if (mediaPlaylistProtectedUri) return fail(ERROR_CATEGORIES.SIGNED_OR_EXPIRING_URL, mediaPlaylistProtectedUri.code, mediaPlaylistProtectedUri.message, mediaPlaylistProtectedUri.details);
@@ -238,6 +206,8 @@
         playlist.selectedResolution = variant.resolution || '';
         playlist.selectedVariantPreference = normalizeVariantPreference(message.hlsVariantPreference);
         if (playlist.encrypted) return fail(ERROR_CATEGORIES.ENCRYPTED, 'encrypted-hls-variant', 'The selected HLS variant is encrypted and cannot be merged.');
+        const variantStructureLimit = getPlaylistStructureLimitReason(playlist);
+        if (variantStructureLimit) return fail(ERROR_CATEGORIES.UNSUPPORTED, variantStructureLimit.code, variantStructureLimit.message, variantStructureLimit.details);
       }
 
       const protectedUri = protectedPlaylistUriReason(playlist, selectedPlaylistUrl);
@@ -311,7 +281,7 @@
 
   async function fetchPlaylist(url, signal) {
     const response = await fetchWithNormalPageRules(url, 'playlist', { signal });
-    const text = await response.text();
+    const text = await readBoundedResponseText(response, MAX_HLS_PLAYLIST_BYTES, 'HLS playlist');
     if (!/^\s*#EXTM3U/m.test(text)) {
       throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'not-hls-playlist', 'The response was not an HLS playlist.');
     }
@@ -320,6 +290,37 @@
 
   async function fetchBinary(url, label, signal) {
     return fetchWithNormalPageRules(url, label, { signal, cache: 'default' });
+  }
+
+  async function readBoundedResponseText(response, maxBytes, label) {
+    const contentLength = parseContentLength(response);
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-playlist-too-large', `${label} exceeds the ${formatBytes(maxBytes)} inspection limit.`);
+    }
+    if (!response.body?.getReader) {
+      throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-playlist-stream-unavailable', `${label} cannot be read safely because this browser does not expose a bounded response stream.`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let bytesRead = 0;
+    const chunks = [];
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytesRead += value.byteLength;
+        if (bytesRead > maxBytes) {
+          try { await reader.cancel('hls-playlist-size-limit'); } catch (_error) {}
+          throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-playlist-too-large', `${label} exceeds the ${formatBytes(maxBytes)} inspection limit.`);
+        }
+        chunks.push(decoder.decode(value, { stream: true }));
+      }
+      chunks.push(decoder.decode());
+      return chunks.join('');
+    } finally {
+      reader.releaseLock?.();
+    }
   }
 
   async function fetchSegmentsInParallel(segments, maxConcurrency, message, options = {}) {
@@ -393,17 +394,19 @@
           lastSegmentIndex: index + 1
         });
       }).then((bytes) => {
-        parts[index] = bytes;
-        totalBytes += bytes.byteLength;
-        completed += 1;
-        if (totalBytes > MAX_HLS_BYTES) {
+        if (fatalError) return;
+        const nextTotalBytes = totalBytes + bytes.byteLength;
+        if (nextTotalBytes > MAX_HLS_BYTES) {
           throw structured(
             ERROR_CATEGORIES.UNSUPPORTED,
             'hls-merge-too-large',
             'This HLS stream is too large for the in-browser memory-based merger. Try a shorter/lower-bitrate variant.',
-            { maxBytes: MAX_HLS_BYTES, bytesSoFar: totalBytes, segmentIndex: index + 1 }
+            { maxBytes: MAX_HLS_BYTES, bytesSoFar: totalBytes, rejectedSegmentBytes: bytes.byteLength, segmentIndex: index + 1 }
           );
         }
+        parts[index] = bytes;
+        totalBytes = nextTotalBytes;
+        completed += 1;
         // Ramp up gradually while requests are succeeding; this avoids the popup
         // and the page stuttering from launching the full window immediately.
         if (targetConcurrency < targetMax && completed % Math.max(work.rampEvery, targetConcurrency) === 0) {
@@ -463,8 +466,11 @@
       assertNotCanceled(signal);
       try {
         const response = await fetchBinaryWithTimeout(segment.url, `segment ${index + 1}`, signal, timeoutMs);
-        const arrayBuffer = await response.arrayBuffer();
-        return new Uint8Array(arrayBuffer);
+        const contentLength = parseContentLength(response);
+        if (Number.isFinite(contentLength) && contentLength > MAX_HLS_SEGMENT_BYTES) {
+          throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-segment-too-large', `Segment ${index + 1} exceeds the ${formatBytes(MAX_HLS_SEGMENT_BYTES)} per-segment memory limit.`);
+        }
+        return await readBoundedResponseBytes(response, MAX_HLS_SEGMENT_BYTES, `Segment ${index + 1}`);
       } catch (error) {
         lastError = error;
         if (!isRetryableSegmentError(error) || attempt >= retryLimit) break;
@@ -474,6 +480,50 @@
       }
     }
     throw lastError || structured(ERROR_CATEGORIES.NETWORK, 'segment-fetch-failed', 'The segment could not be fetched.');
+  }
+
+  async function readBoundedResponseBytes(response, maxBytes, label) {
+    const contentLength = parseContentLength(response);
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-segment-too-large', `${label} exceeds the ${formatBytes(maxBytes)} per-segment memory limit.`);
+    }
+    if (!response.body?.getReader) {
+      throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-segment-stream-unavailable', `${label} cannot be read safely because this browser does not expose a bounded response stream.`);
+    }
+
+    const reader = response.body.getReader();
+    const initialCapacity = Number.isFinite(contentLength) ? Math.min(contentLength, 1024 * 1024) : Math.min(maxBytes, 64 * 1024);
+    let bytes = new Uint8Array(initialCapacity);
+    let bytesRead = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const nextBytesRead = bytesRead + value.byteLength;
+        if (nextBytesRead > maxBytes) {
+          try { await reader.cancel('hls-segment-size-limit'); } catch (_error) {}
+          throw structured(ERROR_CATEGORIES.UNSUPPORTED, 'hls-segment-too-large', `${label} exceeds the ${formatBytes(maxBytes)} per-segment memory limit.`);
+        }
+        if (nextBytesRead > bytes.byteLength) {
+          const nextCapacity = Math.min(maxBytes, Math.max(nextBytesRead, Math.max(64 * 1024, bytes.byteLength * 2)));
+          const expanded = new Uint8Array(nextCapacity);
+          expanded.set(bytes.subarray(0, bytesRead));
+          bytes = expanded;
+        }
+        bytes.set(value, bytesRead);
+        bytesRead = nextBytesRead;
+      }
+    } finally {
+      reader.releaseLock?.();
+    }
+    return bytes.subarray(0, bytesRead);
+  }
+
+  function parseContentLength(response) {
+    const header = response.headers?.get?.('content-length');
+    if (header == null || header === '') return null;
+    const value = Number(header);
+    return Number.isFinite(value) && value >= 0 ? value : null;
   }
 
   function isRetryableSegmentError(error) {
@@ -914,7 +964,7 @@
     return {
       code: 'hls-signed-or-expiring-component',
       message: `This HLS ${kind} URL appears signed, expiring, or tokenized. Media Scout will not reuse protected HLS component URLs.`,
-      details: { kind, urlHost: safeHostname(rawUrl), queryParameterNames: safeQueryParameterNames(rawUrl) }
+      details: { kind, urlHost: safeHostname(rawUrl), queryParameterCount: safeQueryParameterCount(rawUrl) }
     };
   }
 
@@ -928,11 +978,11 @@
     }
   }
 
-  function safeQueryParameterNames(rawUrl = '') {
+  function safeQueryParameterCount(rawUrl = '') {
     try {
-      return Array.from(new URL(String(rawUrl || ''), location.href).searchParams.keys()).sort().slice(0, 24);
+      return Math.min(100, Array.from(new URL(String(rawUrl || ''), location.href).searchParams.keys()).length);
     } catch (_error) {
-      return [];
+      return 0;
     }
   }
 
@@ -991,12 +1041,19 @@
 
   function parseHlsPlaylist(text, baseUrl) {
     const lines = String(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const keyLines = lines.filter((line) => line.startsWith('#EXT-X-KEY') || line.startsWith('#EXT-X-SESSION-KEY'));
-    const encrypted = keyLines.some((line) => !/METHOD\s*=\s*NONE/i.test(line));
+    const keyLines = [];
+    let encrypted = false;
+    for (const line of lines) {
+      if (!line.startsWith('#EXT-X-KEY') && !line.startsWith('#EXT-X-SESSION-KEY')) continue;
+      if (keyLines.length < 3) keyLines.push(line);
+      if (!/METHOD\s*=\s*NONE/i.test(line)) encrypted = true;
+    }
     const playlistTypeLine = lines.find((line) => line.startsWith('#EXT-X-PLAYLIST-TYPE:')) || '';
     const playlistType = playlistTypeLine.split(':')[1]?.trim().toLowerCase() || '';
     const variants = [];
     const segments = [];
+    let variantCount = 0;
+    let segmentCount = 0;
     let durationSeconds = 0;
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
@@ -1007,28 +1064,42 @@
       }
       if (line.startsWith('#EXT-X-STREAM-INF')) {
         const next = nextUriLine(lines, index + 1);
-        if (next) variants.push({
-          url: new URL(next.value, baseUrl).toString(),
-          bandwidth: readNumberAttr(line, 'BANDWIDTH'),
-          resolution: readStringAttr(line, 'RESOLUTION'),
-          audioGroupId: readStringAttr(line, 'AUDIO'),
-          codecs: readStringAttr(line, 'CODECS')
-        });
+        if (next) {
+          variantCount += 1;
+          if (variants.length < MAX_HLS_VARIANTS) {
+            variants.push({
+              url: new URL(next.value, baseUrl).toString(),
+              bandwidth: readNumberAttr(line, 'BANDWIDTH'),
+              resolution: readStringAttr(line, 'RESOLUTION'),
+              audioGroupId: readStringAttr(line, 'AUDIO'),
+              codecs: readStringAttr(line, 'CODECS')
+            });
+          }
+        }
         continue;
       }
       if (!line.startsWith('#')) {
         const segmentUrl = new URL(line, baseUrl).toString();
-        if (!/\.m3u8(?:[?#]|$)/i.test(new URL(segmentUrl).pathname)) segments.push({ url: segmentUrl });
+        if (!/\.m3u8(?:[?#]|$)/i.test(new URL(segmentUrl).pathname)) {
+          segmentCount += 1;
+          if (segments.length < MAX_HLS_SEGMENTS) segments.push({ url: segmentUrl });
+        }
       }
     }
-    const discontinuityCount = lines.filter((line) => line.startsWith('#EXT-X-DISCONTINUITY')).length;
-    const audioRenditions = parseHlsAudioRenditions(lines, baseUrl);
+    const discontinuityCount = lines.reduce((count, line) => count + (line === '#EXT-X-DISCONTINUITY' ? 1 : 0), 0);
+    const audioRenditionResult = parseHlsAudioRenditions(lines, baseUrl);
     return {
       encrypted,
-      keyMarkers: keyLines.slice(0, 3),
+      keyMarkers: keyLines,
       variants,
-      audioRenditions,
+      variantCount,
+      tooManyVariants: variantCount > MAX_HLS_VARIANTS,
+      audioRenditions: audioRenditionResult.renditions,
+      audioRenditionCount: audioRenditionResult.count,
+      tooManyAudioRenditions: audioRenditionResult.count > MAX_HLS_AUDIO_RENDITIONS,
       segments,
+      segmentCount,
+      tooManySegments: segmentCount > MAX_HLS_SEGMENTS,
       durationSeconds,
       discontinuityCount,
       hasDiscontinuity: discontinuityCount > 0,
@@ -1048,10 +1119,10 @@
   function summarizePlaylistProbe(playlist, url) {
     return {
       urlHost: safeHostname(url),
-      segmentCount: playlist.segments?.length || 0,
+      segmentCount: playlist.segmentCount ?? playlist.segments?.length ?? 0,
       durationSeconds: playlist.durationSeconds || 0,
-      variantCount: playlist.variants?.length || 0,
-      audioRenditionCount: playlist.audioRenditions?.length || 0,
+      variantCount: playlist.variantCount ?? playlist.variants?.length ?? 0,
+      audioRenditionCount: playlist.audioRenditionCount ?? playlist.audioRenditions?.length ?? 0,
       hasSeparateAudio: playlistHasSeparateAudioRequirement(playlist),
       hasDiscontinuity: Boolean(playlist.hasDiscontinuity),
       discontinuityCount: playlist.discontinuityCount || 0,
@@ -1068,8 +1139,11 @@
 
   function parseHlsAudioRenditions(lines, baseUrl) {
     const renditions = [];
+    let count = 0;
     for (const line of lines) {
       if (!line.startsWith('#EXT-X-MEDIA') || !/TYPE=AUDIO/i.test(line)) continue;
+      count += 1;
+      if (renditions.length >= MAX_HLS_AUDIO_RENDITIONS) continue;
       const uri = readStringAttr(line, 'URI');
       renditions.push({
         groupId: readStringAttr(line, 'GROUP-ID'),
@@ -1080,7 +1154,20 @@
         uri: uri ? new URL(uri, baseUrl).toString() : ''
       });
     }
-    return renditions;
+    return { renditions, count };
+  }
+
+  function getPlaylistStructureLimitReason(playlist = {}) {
+    if (playlist.tooManyVariants) {
+      return { code: 'hls-too-many-variants', message: `This master playlist exposes more than ${MAX_HLS_VARIANTS} variants, above the safe in-page inspection limit.`, details: { maxVariants: MAX_HLS_VARIANTS } };
+    }
+    if (playlist.tooManyAudioRenditions) {
+      return { code: 'hls-too-many-audio-renditions', message: `This playlist exposes more than ${MAX_HLS_AUDIO_RENDITIONS} audio renditions, above the safe in-page inspection limit.`, details: { maxAudioRenditions: MAX_HLS_AUDIO_RENDITIONS } };
+    }
+    if (playlist.tooManySegments) {
+      return { code: 'hls-too-many-segments', message: `This playlist has more than ${MAX_HLS_SEGMENTS} segments, above the safe in-browser merge limit.`, details: { maxSegments: MAX_HLS_SEGMENTS } };
+    }
+    return null;
   }
 
   function getUnsupportedPlaylistReason(playlist) {
@@ -1090,9 +1177,8 @@
     if (!playlist.segments.length) {
       return { code: 'hls-no-segments', message: 'No media segments were found in the HLS playlist.' };
     }
-    if (playlist.segments.length > MAX_HLS_SEGMENTS) {
-      return { code: 'hls-too-many-segments', message: `This playlist has ${playlist.segments.length} segments, above the safe in-browser merge limit of ${MAX_HLS_SEGMENTS}.` };
-    }
+    const structureLimit = getPlaylistStructureLimitReason(playlist);
+    if (structureLimit) return structureLimit;
     if (playlist.hasMap || playlist.hasFmp4Segments) {
       return { code: 'hls-fmp4-map-unsupported', message: 'This HLS playlist uses fMP4/CMAF init maps or fMP4-like segment files. Media Scout only concatenates MPEG-TS-style HLS segments.' };
     }
@@ -1134,7 +1220,7 @@
   function playlistHasSeparateAudioRequirement(playlist = {}) {
     const audioRenditions = Array.isArray(playlist.audioRenditions) ? playlist.audioRenditions : [];
     const variants = Array.isArray(playlist.variants) ? playlist.variants : [];
-    return Boolean(audioRenditions.length || variants.some((variant) => variant?.audioGroupId));
+    return Boolean(playlist.audioRenditionCount || audioRenditions.length || variants.some((variant) => variant?.audioGroupId));
   }
 
   function isLikelySelfContainedHlsVariant(variant = {}) {

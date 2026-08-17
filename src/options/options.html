@@ -51,16 +51,16 @@
           </select>
           <small>Required by v10: popup makes the instant decision; side panel owns inspector, queue, batch, reports, diagnostics, and help.</small>
         </label>
-        <label class="field switch-field">
+        <div class="field switch-field">
           <span>Notifications</span>
           <label class="switch inline"><input id="notifications" type="checkbox"><span>Show completion and attention prompts</span></label>
           <small>Browser-managed Save As and safety prompts still appear in Chrome/Brave.</small>
-        </label>
-        <label class="field switch-field">
+        </div>
+        <div class="field switch-field">
           <span>Manual HLS converter</span>
           <label class="switch inline"><input id="showManualM3u8Converter" type="checkbox"><span>Show manual .m3u8 route in advanced UI</span></label>
           <small>Hidden by default so the popup never becomes a raw URL editor.</small>
-        </label>
+        </div>
       </div>
     </section>
 
@@ -183,7 +183,7 @@
           <h2>Enabled file types</h2>
           <p class="muted">Groups are collapsed by default so the broad registry stays readable.</p>
         </div>
-        <input id="fileTypeSearch" class="search" type="search" placeholder="Filter types…" autocomplete="off">
+        <input id="fileTypeSearch" class="search" type="search" placeholder="Filter types…" aria-label="Filter file types" autocomplete="off">
       </div>
       <div class="type-toolbar">
         <button id="enableCoreTypes" type="button">Enable core media</button>
@@ -294,10 +294,10 @@
 
     <footer class="bar">
       <div>
-        <strong>Pending changes</strong>
+        <strong id="changeStateLabel">All changes saved</strong>
         <span id="status" role="status"></span>
       </div>
-      <button id="save" type="button" class="primary">Save settings</button>
+      <button id="save" type="button" class="primary" disabled>Save settings</button>
     </footer>
   </main>
   <script type="module" src="options.js"></script>

@@ -80,7 +80,13 @@ function toBytes(content) {
 }
 
 function sanitizeZipPath(path) {
-  return String(path).replace(/^\/+/, '').replace(/\.\./g, '').replace(/\\/g, '/').slice(0, 180) || 'report.txt';
+  const segments = String(path || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((segment) => segment && segment !== '.' && segment !== '..')
+    .map((segment) => segment.replace(/[\u0000-\u001f\u007f]+/g, '').trim())
+    .filter(Boolean);
+  return segments.join('/').slice(0, 180) || 'report.txt';
 }
 
 function dosDateTime(date) {

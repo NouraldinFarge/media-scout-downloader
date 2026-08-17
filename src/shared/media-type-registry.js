@@ -91,15 +91,9 @@ export const MEDIA_EXTENSION_MAP = Object.freeze(Object.fromEntries(
   MEDIA_TYPE_REGISTRY.flatMap((entry) => entry.extensions.map((extension) => [extension, entry.group]))
 ));
 
-export const EXTENSION_MIME_HINTS_FROM_REGISTRY = Object.freeze(Object.fromEntries(
-  MEDIA_TYPE_REGISTRY.flatMap((entry) => entry.extensions.map((extension) => [extension, entry.mimeTypes]))
-));
-
 export const DEFAULT_ENABLED_FILE_TYPES = Object.freeze(Object.fromEntries(
   MEDIA_TYPE_REGISTRY.flatMap((entry) => entry.extensions.map((extension) => [extension, entry.defaultEnabled !== false]))
 ));
-
-export const ALL_MEDIA_EXTENSIONS = Object.freeze(Object.keys(MEDIA_EXTENSION_MAP));
 
 export function registryEntryForExtension(extension = '') {
   const normalized = String(extension || '').toLowerCase().replace(/^\./, '');
@@ -110,16 +104,4 @@ export function registryEntryForMime(mime = '') {
   const normalized = String(mime || '').split(';')[0].trim().toLowerCase();
   if (!normalized) return null;
   return MEDIA_TYPE_REGISTRY.find((entry) => entry.mimeTypes.includes(normalized)) || null;
-}
-
-export function extensionsForGroup(group) {
-  return MEDIA_TYPE_REGISTRY.filter((entry) => entry.group === group).flatMap((entry) => entry.extensions);
-}
-
-export function mediaLiteralExtensionPattern() {
-  return ALL_MEDIA_EXTENSIONS
-    .slice()
-    .sort((a, b) => b.length - a.length)
-    .map((extension) => extension.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|');
 }

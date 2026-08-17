@@ -45,7 +45,8 @@ const state = {
   manualName: '',
   manualMethod: '',
   manualStatus: '',
-  renderScheduled: false
+  renderScheduled: false,
+  loadToken: 0
 };
 
 const els = {
@@ -75,7 +76,9 @@ chrome.runtime.onMessage.addListener((message) => {
   }
   if (message.type === MESSAGE_TYPES.ACTIVE_TAB_STATE) {
     if (!Number.isInteger(state.tab?.id) || !Number.isInteger(message.tabId) || message.tabId === state.tab.id) {
-      if (Array.isArray(message.mediaItems)) mergeMediaItems(message.mediaItems);
+      if (message.navigationReset || message.cacheCleared) resetDetectedState();
+      else if (message.replaceMediaItems && Array.isArray(message.mediaItems)) state.mediaItems = message.mediaItems;
+      else if (Array.isArray(message.mediaItems)) mergeMediaItems(message.mediaItems);
       if (message.queue) state.queue = normalizeQueue(message.queue);
       if (message.scan) state.lastScan = message.scan;
       scheduleRender();
@@ -86,10 +89,11 @@ chrome.runtime.onMessage.addListener((message) => {
 chrome.storage?.onChanged?.addListener?.((changes, areaName) => {
   if (areaName !== 'session' || !changes[SIDE_PANEL_ROUTE_KEY]?.newValue) return;
   const changed = applyLaunchIntent(changes[SIDE_PANEL_ROUTE_KEY].newValue);
-  if (changed) {
-    chrome.storage?.session?.remove?.(SIDE_PANEL_ROUTE_KEY).catch?.(() => {});
-    loadState(MESSAGE_TYPES.GET_ACTIVE_TAB_STATE, { reason: 'sidepanel-route-intent' }, `Opening ${routeLabel(state.route)}…`);
-  }
+  // Route intent is a one-shot handoff. Remove it even when this panel was
+  // already on the requested route so session storage never retains stale UI
+  // coordination data for the rest of the browser session.
+  chrome.storage?.session?.remove?.(SIDE_PANEL_ROUTE_KEY).catch?.(() => {});
+  if (changed) loadState(MESSAGE_TYPES.GET_ACTIVE_TAB_STATE, { reason: 'sidepanel-route-intent' }, `Opening ${routeLabel(state.route)}…`);
 });
 
 function wireShell() {
@@ -105,15 +109,18 @@ function wireShell() {
 }
 
 async function loadState(type, payload = {}, label = 'Loading…') {
+  const token = ++state.loadToken;
   setStatus(label);
   try {
     const response = await sendMessage({ type, ...payload });
+    if (token !== state.loadToken) return;
     applyState(response);
     setStatus(statusFromScan(response));
   } catch (error) {
+    if (token !== state.loadToken) return;
     setStatus(error?.message || 'Could not load workspace state.');
   } finally {
-    scheduleRender();
+    if (token === state.loadToken) scheduleRender();
   }
 }
 
@@ -150,6 +157,13 @@ function mergeMediaItems(items = []) {
   state.mediaItems = Array.from(map.values());
 }
 
+function resetDetectedState() {
+  state.mediaItems = [];
+  state.episodeBatch = null;
+  state.report = null;
+  state.rawReveals.clear();
+}
+
 function scheduleRender() {
   if (state.renderScheduled) return;
   state.renderScheduled = true;
@@ -162,6 +176,7 @@ function scheduleRender() {
 function render() {
   const focusState = captureFocusState();
   const route = state.route || 'home';
+  document.title = `Media Scout — ${routeLabel(route)}`;
   Object.entries(els.routes).forEach(([key, section]) => section?.classList.toggle('hidden', key !== route));
   document.querySelectorAll('[data-route]').forEach((button) => button.setAttribute('aria-current', button.dataset.route === route ? 'page' : 'false'));
   updateCounts();
@@ -291,19 +306,23 @@ function privacyCard() {
 
 function renderInspector(root) {
   const filtered = filteredCandidates();
+  const filterInput = input('search', state.filter, 'Filter host, type, source, or evidence…', (value) => { state.filter = value; scheduleRender(); }, 'inspector-filter');
+  filterInput.setAttribute('aria-label', 'Filter media candidates');
+  const capabilitySelect = select(state.capabilityFilter, [
+    ['all', 'All capabilities'],
+    ['downloadable', 'Downloadable'],
+    ['convertible', 'Convertible'],
+    ['manifest', 'Manifest only'],
+    ['unsupported', 'Unsupported'],
+    ['playback', 'Needs playback']
+  ], (value) => { state.capabilityFilter = value; scheduleRender(); }, 'inspector-capability');
+  capabilitySelect.setAttribute('aria-label', 'Filter candidates by capability');
   root.replaceChildren(
     el('section', { className: 'card' }, [
       heading('Inspector', 'All candidates, compatibility details, redacted evidence, and gated raw reveal.'),
       toolbar([
-        input('search', state.filter, 'Filter host, type, source, or evidence…', (value) => { state.filter = value; scheduleRender(); }, 'inspector-filter'),
-        select(state.capabilityFilter, [
-          ['all', 'All capabilities'],
-          ['downloadable', 'Downloadable'],
-          ['convertible', 'Convertible'],
-          ['manifest', 'Manifest only'],
-          ['unsupported', 'Unsupported'],
-          ['playback', 'Needs playback']
-        ], (value) => { state.capabilityFilter = value; scheduleRender(); }, 'inspector-capability')
+        filterInput,
+        capabilitySelect
       ])
     ]),
     filtered.length ? candidateGroups(filtered) : emptyNotice('No matching candidates. Play the page media, rescan, or clear filters.'),
@@ -459,7 +478,7 @@ function queueCard(task = {}) {
       el('span', { className: `badge ${tone}`, text: statusLabel(task.status) })
     ])
   );
-  if (task.progress) card.append(el('div', { className: 'progress-track', attrs: { role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct)) } }, [el('div', { className: 'progress-bar', style: { width: `${pct}%` } })]));
+  if (task.progress) card.append(el('div', { className: 'progress-track', attrs: { role: 'progressbar', 'aria-label': `Download progress for ${task.displayName || task.filename || task.mediaTitle || 'media'}`, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct)), 'aria-valuetext': `${Math.round(pct)} percent` } }, [el('div', { className: 'progress-bar', style: { width: `${pct}%` } })]));
   if (task.progress?.detail) card.append(el('p', { className: 'subtitle', text: task.progress.detail }));
   if (task.lastError?.message) card.append(el('p', { className: 'notice danger', text: task.lastError.message }));
   card.append(el('ol', { className: 'timeline' }, [
@@ -772,7 +791,7 @@ async function runSelfTests() {
   const response = await sendMessage({ type: MESSAGE_TYPES.RUN_SELF_TESTS });
   const output = byId('diagnosticOutput')?.querySelector('pre');
   if (output) output.textContent = JSON.stringify(response.selfTests || response, null, 2);
-  setStatus('Self-tests complete.');
+  setStatus(response.selfTests?.passed === true ? 'Self-tests passed.' : 'Self-tests returned failures.');
 }
 
 async function action(type, successText) {

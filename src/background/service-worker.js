@@ -1,6 +1,6 @@
 import { HLS_OUTPUT_METHODS, MEDIA_TYPES, MESSAGE_TYPES } from '../shared/constants.js';
 import { setDebugLogging, warn } from '../shared/logger.js';
-import { clearQueueHistory, getSettings, resetSettings, saveSettings } from '../shared/storage-utils.js';
+import { getSettings, saveSettings } from '../shared/storage-utils.js';
 import { getActiveTab } from '../shared/utils.js';
 import { isContentScriptMessageType, isPrivilegedExtensionMessageType, validateMessage } from '../shared/validators.js';
 import { runSelfTests } from '../shared/self-tests.js';
@@ -10,12 +10,16 @@ import { MediaDetector } from './media-detector.js';
 import { ReportManager } from './report-manager.js';
 import { TabMediaStore } from './tab-media-store.js';
 
+const MAX_AGGREGATED_SCAN_ITEMS = 2000;
+const MAX_REPORT_LIST_ITEMS = 600;
 const tabMediaStore = new TabMediaStore();
 const diagnostics = new DiagnosticsManager();
 const broadcast = (message) => chrome.runtime.sendMessage(message).catch?.(() => undefined);
 const downloadManager = new DownloadManager({ tabMediaStore, diagnostics, broadcast });
 const detector = new MediaDetector({ tabMediaStore, diagnostics, getSettings });
 const reportManager = new ReportManager({ getSettings, diagnostics, downloadManager });
+const followupScanTimers = new Map();
+let initializationError = null;
 
 async function initialize() {
   const settings = await getSettings();
@@ -25,17 +29,31 @@ async function initialize() {
   detector.start();
 }
 
-initialize().catch((error) => warn('Initialization failed', error.message));
-
-chrome.runtime.onInstalled.addListener(async () => {
-  const settings = await getSettings();
-  if (!settings) await resetSettings();
+const initializationPromise = initialize().catch((error) => {
+  initializationError = error;
+  warn('Initialization failed', error?.message || error);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  downloadManager.cancelTasksForTab(tabId, 'The source tab was closed before the download finished.');
+  const hadMedia = tabMediaStore.getTabState(tabId).mediaItems.length > 0;
+  const wasScoped = detector.isScopedTab(tabId);
+  cancelFollowupScans(tabId);
+  const canceledCount = downloadManager.cancelTasksForTab(tabId, 'The source tab was closed before the download finished.');
   detector.unScopeTab(tabId);
   tabMediaStore.clearTab(tabId);
+  if (hadMedia || wasScoped || canceledCount) {
+    broadcast({
+      type: MESSAGE_TYPES.ACTIVE_TAB_STATE,
+      tabId,
+      mediaItems: [],
+      queue: downloadManager.getState(),
+      navigationReset: true,
+      scan: {
+        ok: false,
+        message: 'The source tab was closed. Media Scout cleared its stale detections and stopped source-dependent downloads.'
+      }
+    });
+  }
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -52,13 +70,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ ok: false, error: 'Message source is not allowed for this action.' });
     return false;
   }
-  handleMessage(message, sender).then(
+  handleMessageAfterInitialization(message, sender).then(
     (response) => sendResponse({ ok: true, ...response }),
     (error) => sendResponse({ ok: false, error: error.message || 'Request failed.', details: error })
   );
   return true;
 });
 
+async function handleMessageAfterInitialization(message, sender) {
+  await initializationPromise;
+  if (initializationError) throw new Error('Media Scout could not initialize its local state. Reload the extension and try again.');
+  return handleMessage(message, sender);
+}
 
 function isAllowedMessageSource(message, sender = {}) {
   if (isContentScriptMessageType(message?.type)) return isContentScriptSender(sender);
@@ -94,6 +117,8 @@ function handleTabNavigation(tabId, newUrl = '') {
     tabMediaStore.setTabInfo({ id: tabId, title: previousTab.title, url: newUrl });
     return;
   }
+  cancelFollowupScans(tabId);
+  downloadManager.resetTabDownloadCounter(tabId);
   const wasScoped = detector.isScopedTab(tabId);
   detector.unScopeTab(tabId);
   tabMediaStore.clearTab(tabId);
@@ -168,10 +193,13 @@ async function handleMessage(message, sender) {
     case MESSAGE_TYPES.SETTINGS_SAVE:
       return saveSettingsFromMessage(message);
     case MESSAGE_TYPES.CLEAR_DETECTED_CACHE:
+      cancelAllFollowupScans();
+      detector.unScopeAll();
       tabMediaStore.clearAll();
+      broadcast({ type: MESSAGE_TYPES.ACTIVE_TAB_STATE, cacheCleared: true, mediaItems: [] });
       return { cleared: true };
     case MESSAGE_TYPES.CLEAR_QUEUE_HISTORY:
-      return clearQueueHistory();
+      return downloadManager.clearPersistedQueueHistory();
     case MESSAGE_TYPES.CLEAR_SETTLED_QUEUE:
       return { cleared: downloadManager.clearSettledQueue(), queue: downloadManager.getState() };
     case MESSAGE_TYPES.PAUSE_QUEUE:
@@ -248,7 +276,7 @@ async function hardRescanActiveTab(message = {}) {
 async function reloadExtensionAndRefreshPage(message = {}) {
   const tab = await getTargetTab(message);
   let pageRefresh = 'no-active-tab';
-  if (tab?.id) {
+  if (Number.isInteger(tab?.id)) {
     try {
       await chromeCallSafe((done) => chrome.tabs.reload(tab.id, { bypassCache: true }, done));
       pageRefresh = 'requested';
@@ -277,6 +305,7 @@ function combineScanStatuses(statuses = []) {
     allFramesOk: statuses.some((item) => item?.allFramesOk),
     usedFallback: statuses.some((item) => item?.usedFallback),
     usedLegacyFallback: statuses.some((item) => item?.usedLegacyFallback),
+    stale: statuses.some((item) => item?.stale),
     itemCount: statuses.reduce((sum, item) => sum + (Number(item?.itemCount) || 0), 0),
     errors: statuses.flatMap((item) => item?.errors || []).slice(0, 6)
   };
@@ -314,30 +343,59 @@ function requestRuntimeUpdateCheck() {
 
 function scheduleFollowupScans(tab) {
   if (!Number.isInteger(tab?.id)) return;
+  cancelFollowupScans(tab.id);
+  const timers = new Set();
+  followupScanTimers.set(tab.id, timers);
   for (const delay of [900, 2500]) {
-    setTimeout(async () => {
+    const timer = setTimeout(async () => {
+      timers.delete(timer);
+      if (timers.inProgress) return;
+      timers.inProgress = true;
       try {
+        if (followupScanTimers.get(tab.id) !== timers) return;
         const sourceTab = await getTabById(tab.id);
+        if (followupScanTimers.get(tab.id) !== timers) return;
         if (!Number.isInteger(sourceTab?.id) || isExtensionUrl(sourceTab.url || '')) return;
+        if (tab.url && sourceTab.url && !isSameDocumentNavigation(tab.url, sourceTab.url)) return;
         tabMediaStore.setTabInfo(sourceTab);
         const scan = await requestPageScan(sourceTab);
+        if (followupScanTimers.get(tab.id) !== timers) return;
         const state = tabMediaStore.getTabState(sourceTab.id);
         broadcast({
           type: MESSAGE_TYPES.ACTIVE_TAB_STATE,
           tabId: sourceTab.id,
           mediaItems: state.mediaItems,
+          replaceMediaItems: true,
           scan: summarizeScanStatus({}, scan)
         });
       } catch (error) {
         warn('Follow-up media scan failed safely', error?.message || error);
+      } finally {
+        timers.inProgress = false;
+        if (!timers.size && followupScanTimers.get(tab.id) === timers) followupScanTimers.delete(tab.id);
       }
     }, delay);
+    timers.add(timer);
   }
 }
 
+function cancelFollowupScans(tabId) {
+  const timers = followupScanTimers.get(tabId);
+  if (!timers) return;
+  for (const timer of timers) clearTimeout(timer);
+  followupScanTimers.delete(tabId);
+}
+
+function cancelAllFollowupScans() {
+  for (const tabId of Array.from(followupScanTimers.keys())) cancelFollowupScans(tabId);
+}
+
 async function handleDomMediaFound(message, sender) {
-  const tab = sender.tab || await getActiveTab();
-  if (!Number.isInteger(tab?.id)) return { addedCount: 0 };
+  const senderTab = sender.tab || await getActiveTab();
+  if (!Number.isInteger(senderTab?.id)) return { addedCount: 0 };
+  const tab = await getTabById(senderTab.id);
+  if (!Number.isInteger(tab?.id)) return { addedCount: 0, stale: true };
+  if (senderTab.url && tab.url && !isSameDocumentNavigation(senderTab.url, tab.url)) return { addedCount: 0, stale: true };
   const added = await detector.ingestDomScan(tab, message.items || []);
   broadcast({ type: MESSAGE_TYPES.ACTIVE_TAB_STATE, tabId: tab.id, mediaItems: added });
   return { addedCount: added.length };
@@ -397,13 +455,20 @@ async function generateReport(message = {}) {
   if (!Number.isInteger(tab?.id)) throw new Error('Active tab unavailable.');
   detector.scopeTab(tab.id);
   tabMediaStore.setTabInfo(tab);
+  const tabRevision = tabMediaStore.getTabRevision(tab.id);
   await ensureScanner(tab.id);
-  await requestPageScan(tab);
+  const scan = await requestPageScan(tab);
+  if (scan.stale || !tabMediaStore.isTabRevisionCurrent(tab.id, tabRevision)) {
+    throw new Error('The page changed while the report was being built. Rescan the current page and build the report again.');
+  }
   const siteAccess = await hasOriginPermission(tab.url);
   const { report: detailedScan, error: scannerError } = await requestDetailedPageScan(tab.id);
+  if (!tabMediaStore.isTabRevisionCurrent(tab.id, tabRevision)) {
+    throw new Error('The page changed while the report was being built. Stale report evidence was discarded.');
+  }
   const probeAnnotation = tabMediaStore.applyPlaylistProbeFindings(tab.id, detailedScan?.playlistProbes || []);
   if (probeAnnotation?.updated) {
-    broadcast({ type: MESSAGE_TYPES.ACTIVE_TAB_STATE, tabId: tab.id, mediaItems: tabMediaStore.getTabState(tab.id).mediaItems });
+    broadcast({ type: MESSAGE_TYPES.ACTIVE_TAB_STATE, tabId: tab.id, mediaItems: tabMediaStore.getTabState(tab.id).mediaItems, replaceMediaItems: true });
   }
   const tabState = tabMediaStore.getTabState(tab.id);
   const report = await reportManager.buildActiveTabReport({
@@ -419,9 +484,11 @@ async function generateReport(message = {}) {
 }
 
 async function saveSettingsFromMessage(message) {
+  const previousSettings = await getSettings();
   const settings = await saveSettings(message.settings || {});
   setDebugLogging(settings.debugLogs);
   await downloadManager.updateSettings(settings);
+  if (settings.queueHistoryRetentionDays < previousSettings.queueHistoryRetentionDays) await downloadManager.clearPersistedQueueHistory();
   return { settings };
 }
 
@@ -475,6 +542,7 @@ async function requestPageScan(tabOrTabId) {
     allFramesOk: false,
     usedFallback: false,
     usedLegacyFallback: false,
+    stale: false,
     itemCount: 0,
     errors: []
   };
@@ -489,6 +557,7 @@ async function requestPageScan(tabOrTabId) {
     for (const result of results || []) {
       const payload = result.result || {};
       for (const item of payload.items || []) {
+        if (allItems.length >= MAX_AGGREGATED_SCAN_ITEMS) return;
         allItems.push({
           ...item,
           frameId: result.frameId,
@@ -584,8 +653,14 @@ async function requestPageScan(tabOrTabId) {
     }
   }
 
-  if (allItems.length && tab) {
-    const added = await detector.ingestDomScan(tab, dedupeScanItems(allItems));
+  const currentTab = await getTabById(tabId);
+  if (!Number.isInteger(currentTab?.id) || (tab.url && currentTab.url && !isSameDocumentNavigation(tab.url, currentTab.url))) {
+    status.stale = true;
+    status.errors.push('The page changed while the scan was running; stale results were discarded.');
+    return status;
+  }
+  if (allItems.length) {
+    const added = await detector.ingestDomScan(currentTab, dedupeScanItems(allItems));
     status.itemCount = added.length;
   }
   return status;
@@ -594,21 +669,45 @@ async function requestPageScan(tabOrTabId) {
 function legacyBroadMediaScan() {
   const MEDIA_RE = /(?:(?:https?:)?\/\/|\.{0,2}\/|[A-Za-z0-9_%.-]+\/)[^\s"'<>`]+?\.(?:m3u8|m3u|mpd|mp4|m4v|mov|webm|ogv|ts|m2ts|m4s|cmfv|cmfa|mp3|m4a|aac|wav|ogg|oga|opus|flac|vtt|srt|ttml|dfxp|jpg|jpeg|png|webp|avif|gif)(?:\?[^\s"'<>`]*)?/gi;
   const MEDIA_EXT = /\.(m3u8|m3u|mpd|mp4|m4v|mov|webm|ogv|ts|m2ts|m4s|cmfv|cmfa|mp3|m4a|aac|wav|ogg|oga|opus|flac|vtt|srt|ttml|dfxp|jpg|jpeg|png|webp|avif|gif)(?:[?#]|$)/i;
+  const MAX_CANDIDATES = 1200;
+  const MAX_SCRIPT_COUNT = 300;
+  const MAX_SCRIPT_TEXT_CHARS = 2_000_000;
+  const MAX_ATTRIBUTE_ELEMENTS = 2000;
+  const MAX_DOM_ELEMENTS_VISITED = 20_000;
+  const MAX_RESOURCE_ENTRIES = 2000;
   const items = [];
+  const selectBounded = (selector, maxMatches, root = document, maxVisits = MAX_DOM_ELEMENTS_VISITED) => {
+    const matches = [];
+    const ownerDocument = root?.nodeType === 9 ? root : root?.ownerDocument || document;
+    if (!root || !ownerDocument?.createTreeWalker) return matches;
+    const walker = ownerDocument.createTreeWalker(root, globalThis.NodeFilter?.SHOW_ELEMENT || 1);
+    let element = root.nodeType === 1 ? root : walker.nextNode();
+    let visited = 0;
+    while (element && visited < maxVisits && matches.length < maxMatches) {
+      visited += 1;
+      if (element.matches?.(selector)) matches.push(element);
+      element = walker.nextNode();
+    }
+    return matches;
+  };
   const push = (raw, source, extra = {}) => {
-    if (!raw) return;
+    if (!raw || items.length >= MAX_CANDIDATES) return;
     try {
       const url = new URL(String(raw).replace(/&amp;/gi, '&').replace(/\\\//g, '/').replace(/\\u002f/gi, '/').replace(/\\x2f/gi, '/'), document.baseURI);
       url.hash = '';
       const normalized = url.toString();
+      if (normalized.length > 4096) return;
       if (!MEDIA_EXT.test(normalized) && !normalized.startsWith('blob:')) return;
-      items.push({ url: normalized, source, frameUrl: location.href, ...extra });
+      items.push({ url: normalized, source, frameUrl: String(location.href || '').slice(0, 4096), ...extra });
     } catch (_error) {
       // Ignore malformed literal candidates.
     }
   };
 
-  for (const media of document.querySelectorAll('video,audio')) {
+  let inspectedMediaElements = 0;
+  for (const media of selectBounded('video,audio', 240)) {
+    if (inspectedMediaElements >= 240 || items.length >= MAX_CANDIDATES) break;
+    inspectedMediaElements += 1;
     const source = media.tagName.toLowerCase() === 'video' ? 'dom-video' : 'dom-audio';
     for (const value of [media.currentSrc, media.src, media.getAttribute('src')]) {
       push(value, source, {
@@ -616,7 +715,7 @@ function legacyBroadMediaScan() {
         probableMseBlob: String(value || '').startsWith('blob:') && media.readyState >= 1,
         mediaDuration: Number.isFinite(media.duration) ? media.duration : null,
         mediaInfo: {
-          currentSrc: String(media.currentSrc || '').startsWith('blob:') ? 'blob:' : media.currentSrc || '',
+          currentSrc: String(media.currentSrc || '').startsWith('blob:') ? 'blob:' : String(media.currentSrc || '').slice(0, 4096),
           duration: Number.isFinite(media.duration) ? media.duration : null,
           resolution: media.videoWidth && media.videoHeight ? `${media.videoWidth}x${media.videoHeight}` : '',
           readyState: media.readyState,
@@ -625,13 +724,17 @@ function legacyBroadMediaScan() {
         }
       });
     }
-    for (const sourceElement of media.querySelectorAll('source')) {
-      push(sourceElement.src || sourceElement.getAttribute('src'), 'dom-source', { type: sourceElement.type || sourceElement.getAttribute('type') || '' });
+    for (const sourceElement of selectBounded('source', 50, media, 2000)) {
+      push(sourceElement.src || sourceElement.getAttribute('src'), 'dom-source', { type: String(sourceElement.type || sourceElement.getAttribute('type') || '').slice(0, 160) });
     }
   }
 
-  for (const script of document.scripts || []) {
-    const text = script.src ? script.src : String(script.textContent || '').slice(0, 900000);
+  const scripts = document.scripts || [];
+  let remainingScriptChars = MAX_SCRIPT_TEXT_CHARS;
+  for (let scriptIndex = 0; scriptIndex < Math.min(MAX_SCRIPT_COUNT, scripts.length) && items.length < MAX_CANDIDATES; scriptIndex += 1) {
+    const script = scripts[scriptIndex];
+    const text = script.src ? script.src : String(script.textContent || '').slice(0, Math.min(900_000, remainingScriptChars));
+    if (!script.src) remainingScriptChars -= text.length;
     MEDIA_RE.lastIndex = 0;
     let match;
     let guard = 0;
@@ -639,10 +742,20 @@ function legacyBroadMediaScan() {
       guard += 1;
       push(match[0], script.src ? 'script-src-legacy' : 'page-text-literal', { literalContext: script.src ? 'script-src' : 'inline-script' });
     }
+    if (remainingScriptChars <= 0) break;
   }
 
-  for (const element of document.querySelectorAll('[src], [href], [srcset], [poster], [data-src], [data-url], [data-play], [data-video], [data-audio], [data-media], [data-stream], [data-file], [data-original]')) {
-    for (const attribute of ['src', 'href', 'srcset', 'poster', 'data-src', 'data-url', 'data-play', 'data-video', 'data-audio', 'data-media', 'data-stream', 'data-file', 'data-original']) {
+  const mediaAttributes = ['src', 'href', 'srcset', 'poster', 'data-src', 'data-url', 'data-play', 'data-video', 'data-audio', 'data-media', 'data-stream', 'data-file', 'data-original'];
+  const walker = document.createTreeWalker(document.documentElement || document, NodeFilter.SHOW_ELEMENT);
+  let element = walker.currentNode;
+  let visitedElements = 0;
+  let inspectedAttributeElements = 0;
+  while (element && visitedElements < MAX_DOM_ELEMENTS_VISITED && inspectedAttributeElements < MAX_ATTRIBUTE_ELEMENTS && items.length < MAX_CANDIDATES) {
+    visitedElements += 1;
+    const hasMediaAttribute = mediaAttributes.some((attribute) => element.hasAttribute?.(attribute));
+    if (hasMediaAttribute) inspectedAttributeElements += 1;
+    for (const attribute of mediaAttributes) {
+      if (items.length >= MAX_CANDIDATES) break;
       if (!element.hasAttribute(attribute)) continue;
       const text = element.getAttribute(attribute) || '';
       MEDIA_RE.lastIndex = 0;
@@ -654,10 +767,12 @@ function legacyBroadMediaScan() {
       }
       if (!text.includes(',')) push(text, `attribute-${attribute}`, { literalContext: attribute });
     }
+    element = walker.nextNode();
   }
 
   const resources = typeof performance?.getEntriesByType === 'function' ? performance.getEntriesByType('resource') : [];
-  for (const entry of resources || []) {
+  for (const entry of (resources || []).slice(-MAX_RESOURCE_ENTRIES)) {
+    if (items.length >= MAX_CANDIDATES) break;
     push(entry.name, 'performance-resource', {
       initiatorType: entry.initiatorType || '',
       transferSize: entry.transferSize || 0,
@@ -676,15 +791,28 @@ function legacyBroadMediaScan() {
   }
 
   const seen = new Set();
+  const priority = (item = {}) => {
+    const url = String(item.url || '').toLowerCase();
+    const source = String(item.source || '').toLowerCase();
+    if (url.startsWith('blob:') || /\.(m3u8|mpd)(?:[?#]|$)/i.test(url)) return 0;
+    if (/\.(mp4|m4v|mov|webm|ogv|ts|m2ts|m4s|mp3|m4a|aac|wav|ogg|opus|flac)(?:[?#]|$)/i.test(url)) return 1;
+    if (/track|subtitle|caption/.test(source)) return 2;
+    if (/image|poster|thumbnail/.test(source) || /\.(?:jpe?g|png|webp|avif|gif)(?:[?#]|$)/i.test(url)) return 4;
+    return 3;
+  };
+  const deduped = items.filter((item) => {
+    const key = `${item.url}|${item.source}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((item, index) => ({ item, index, priority: priority(item) }))
+    .sort((left, right) => left.priority - right.priority || left.index - right.index)
+    .slice(0, 320)
+    .map(({ item }) => item);
   return {
-    frameUrl: location.href,
-    title: document.title,
-    items: items.filter((item) => {
-      const key = `${item.url}|${item.source}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }).slice(0, 320)
+    frameUrl: String(location.href || '').slice(0, 4096),
+    title: String(document.title || '').slice(0, 500),
+    items: deduped
   };
 }
 
@@ -706,13 +834,29 @@ function dedupeScanItems(items = []) {
     seen.add(key);
     deduped.push(item);
   }
-  return deduped;
+  return deduped
+    .map((item, index) => ({ item, index, priority: scanItemPriority(item) }))
+    .sort((left, right) => left.priority - right.priority || left.index - right.index)
+    .slice(0, 500)
+    .map(({ item }) => item);
+}
+
+function scanItemPriority(item = {}) {
+  const url = String(item.url || '').toLowerCase();
+  const type = String(item.type || item.mime || '').toLowerCase();
+  const source = String(item.source || '').toLowerCase();
+  if (url.startsWith('blob:') || /\.(m3u8|mpd)(?:[?#]|$)/i.test(url) || /mpegurl|dash\+xml/.test(type)) return 0;
+  if (/\.(mp4|m4v|mov|webm|ogv|ts|m2ts|m4s|mp3|m4a|aac|wav|ogg|opus|flac)(?:[?#]|$)/i.test(url) || /video\/|audio\//.test(type)) return 1;
+  if (/track|subtitle|caption/.test(source)) return 2;
+  if (/image|poster|thumbnail/.test(source) || /image\//.test(type)) return 4;
+  return 3;
 }
 
 function summarizeScanStatus(injection = {}, scan = {}) {
   const itemCount = Number(scan.itemCount || 0);
   const usedFallback = Boolean(scan.usedFallback || scan.usedLegacyFallback);
-  const ok = Boolean(injection.topFrameOk || scan.topFrameOk || scan.allFramesOk || usedFallback || itemCount > 0);
+  const stale = Boolean(scan.stale);
+  const ok = !stale && Boolean(injection.topFrameOk || scan.topFrameOk || scan.allFramesOk || usedFallback || itemCount > 0);
   const errors = [...(injection.errors || []), ...(scan.errors || [])].filter(Boolean).slice(0, 3);
   return {
     ok,
@@ -720,11 +864,12 @@ function summarizeScanStatus(injection = {}, scan = {}) {
     allFramesOk: Boolean(injection.allFramesOk || scan.allFramesOk),
     usedFallback,
     usedLegacyFallback: Boolean(scan.usedLegacyFallback),
+    stale,
     itemCount,
     errors,
     message: ok
       ? ''
-      : (errors[0] || 'Scanner could not run on this page. Chrome blocks extensions on some pages and browser-internal URLs.')
+      : (stale ? 'The page changed while Media Scout was scanning. Stale results were discarded; rescan the current page.' : (errors[0] || 'Scanner could not run on this page. Chrome blocks extensions on some pages and browser-internal URLs.'))
   };
 }
 
@@ -755,7 +900,7 @@ async function requestDetailedPageScan(tabId) {
 function aggregateFrameReports(entries) {
   const topEntry = entries.find((entry) => entry.frameId === 0) || entries[0];
   const top = topEntry.report || {};
-  const frames = entries.map(({ frameId, report }) => ({
+  const frames = entries.slice(0, 240).map(({ frameId, report }) => ({
     frameId,
     frame: report.frame || {},
     document: report.document || {},
@@ -788,6 +933,7 @@ function flattenFrameList(entries, key) {
   const result = [];
   for (const { frameId, report } of entries) {
     for (const item of report?.[key] || []) {
+      if (result.length >= MAX_REPORT_LIST_ITEMS) return result;
       result.push({
         ...item,
         frameId,
@@ -799,8 +945,8 @@ function flattenFrameList(entries, key) {
 }
 
 function aggregatePerformance(entries) {
-  const initiatorCounts = {};
-  const hostCounts = {};
+  const initiatorCounts = Object.create(null);
+  const hostCounts = Object.create(null);
   const mediaLikeEntries = [];
   const interestingEntries = [];
   let totalResourceEntries = 0;
@@ -814,8 +960,14 @@ function aggregatePerformance(entries) {
     for (const host of performance.topHosts || []) {
       hostCounts[host.hostname] = (hostCounts[host.hostname] || 0) + (host.count || 0);
     }
-    for (const item of performance.mediaLikeEntries || []) mediaLikeEntries.push({ ...item, frameId, frameUrl: report?.frame?.url || '' });
-    for (const item of performance.interestingEntries || []) interestingEntries.push({ ...item, frameId, frameUrl: report?.frame?.url || '' });
+    for (const item of performance.mediaLikeEntries || []) {
+      if (mediaLikeEntries.length >= 240) break;
+      mediaLikeEntries.push({ ...item, frameId, frameUrl: report?.frame?.url || '' });
+    }
+    for (const item of performance.interestingEntries || []) {
+      if (interestingEntries.length >= 240) break;
+      interestingEntries.push({ ...item, frameId, frameUrl: report?.frame?.url || '' });
+    }
   }
 
   return {
@@ -837,7 +989,7 @@ async function discoverEpisodeBatch(message = {}) {
 
 async function startEpisodeBatchDownloads(message = {}) {
   const activeTab = await getTargetTab(message);
-  if (!activeTab?.id) throw new Error('No active tab was available.');
+  if (!Number.isInteger(activeTab?.id)) throw new Error('No active tab was available.');
   const sourceEpisodes = Array.isArray(message.episodes) && message.episodes.length
     ? message.episodes
     : (await findEpisodeBatchForTab(activeTab)).episodes;
@@ -902,7 +1054,7 @@ async function scanEpisodePageAndQueue(activeTab, episode, hlsOutputMethod) {
     // is performed in that tab content context and must obey normal page rules.
     return { episodeNumber: episode.episodeNumber, url: episode.url, title, queued: true, mediaType: media.mediaType, mediaId: media.id, taskId: task.id, openedTabId: tab.id };
   } catch (error) {
-    if (tab?.id) {
+    if (Number.isInteger(tab?.id)) {
       try { await chromeCallSafe((done) => chrome.tabs.remove(tab.id, done)); } catch (_cleanupError) {}
     }
     return { episodeNumber: episode.episodeNumber, url: episode.url, queued: false, error: error?.message || 'Episode queueing failed.' };
@@ -929,13 +1081,18 @@ function waitForTabComplete(tabId, timeoutMs = 30_000) {
       settled = true;
       clearTimeout(timer);
       chrome.tabs.onUpdated.removeListener(listener);
+      chrome.tabs.onRemoved.removeListener(removedListener);
       resolve();
     };
     const listener = (updatedTabId, changeInfo) => {
       if (updatedTabId === tabId && changeInfo.status === 'complete') finish();
     };
+    const removedListener = (removedTabId) => {
+      if (removedTabId === tabId) finish();
+    };
     const timer = setTimeout(finish, timeoutMs);
     chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.onRemoved.addListener(removedListener);
     chrome.tabs.get(tabId, (tab) => {
       if (!chrome.runtime.lastError && tab?.status === 'complete') finish();
     });
@@ -948,7 +1105,7 @@ async function findEpisodeBatchForTab(tab) {
   if (!pattern) return emptyEpisodeBatch('The active URL does not end in a numbered episode-like token.');
   const seen = new Map();
   const add = (item) => {
-    if (!item?.url || item.episodeNumber == null) return;
+    if (!item?.url || item.episodeNumber == null || seen.size >= 240) return;
     const key = String(item.episodeNumber);
     const previous = seen.get(key);
     if (!previous || (item.title && !previous.title)) seen.set(key, item);
@@ -998,6 +1155,7 @@ function sanitizeEpisodeList(episodes = [], activeTabUrl = '') {
   const seen = new Set();
   const list = [];
   for (let item of episodes) {
+    if (typeof item?.url !== 'string' || item.url.length > 4096) continue;
     try {
       const parsed = new URL(item.url);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
@@ -1024,6 +1182,7 @@ function sanitizeEpisodeList(episodes = [], activeTabUrl = '') {
 }
 
 function episodePatternFromUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || rawUrl.length > 4096) return null;
   try {
     const url = new URL(rawUrl);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
@@ -1053,7 +1212,7 @@ function collectEpisodeLinksInPage(pattern) {
   const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pathRegex = new RegExp(`^${escapeRegex(pattern.prefix)}(\\d+)${escapeRegex(pattern.suffix || '')}$`);
   const pushUrl = (raw, source, title = '') => {
-    if (!raw) return;
+    if (!raw || episodes.length >= 120) return;
     try {
       const url = new URL(String(raw).replace(/&amp;/g, '&'), document.baseURI);
       if (url.origin !== pattern.origin) return;
@@ -1061,31 +1220,51 @@ function collectEpisodeLinksInPage(pattern) {
       if (!match) return;
       url.hash = '';
       const normalized = url.toString();
+      if (normalized.length > 4096) return;
       if (seen.has(normalized)) return;
       seen.add(normalized);
-      episodes.push({ url: normalized, episodeNumber: Number.parseInt(match[1], 10), title: String(title || '').trim(), source, frameUrl: location.href });
+      episodes.push({ url: normalized, episodeNumber: Number.parseInt(match[1], 10), title: String(title || '').replace(/\s+/g, ' ').trim().slice(0, 300), source, frameUrl: String(location.href || '').slice(0, 4096) });
     } catch (_error) {}
   };
 
   pushUrl(location.href, 'frame-location', document.title);
-  for (const element of document.querySelectorAll('a[href], area[href], [data-href], [data-url], [data-link], [data-play], [data-episode], [data-episode-url], [onclick]')) {
-    const title = element.getAttribute('title') || element.getAttribute('aria-label') || element.textContent || '';
-    for (const attr of ['href', 'data-href', 'data-url', 'data-link', 'data-play', 'data-episode', 'data-episode-url']) pushUrl(element.getAttribute(attr), `attribute:${attr}`, title);
+  const episodeAttributes = ['href', 'data-href', 'data-url', 'data-link', 'data-play', 'data-episode', 'data-episode-url'];
+  const walker = document.createTreeWalker(document.documentElement || document, globalThis.NodeFilter?.SHOW_ELEMENT || 1);
+  let element = walker.currentNode;
+  let inspectedEpisodeElements = 0;
+  let visitedEpisodeElements = 0;
+  while (element && episodes.length < 120 && inspectedEpisodeElements < 2000 && visitedEpisodeElements < 20_000) {
+    visitedEpisodeElements += 1;
+    const hasCandidate = episodeAttributes.some((attribute) => element.hasAttribute?.(attribute)) || element.hasAttribute?.('onclick');
+    if (!hasCandidate) {
+      element = walker.nextNode();
+      continue;
+    }
+    inspectedEpisodeElements += 1;
+    const title = String(element.getAttribute('title') || element.getAttribute('aria-label') || element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    for (const attr of episodeAttributes) pushUrl(element.getAttribute(attr), `attribute:${attr}`, title);
     const onclick = element.getAttribute('onclick') || '';
     if (onclick && onclick.length < 6000) {
       const urls = onclick.match(/(?:https?:\/\/[^'"\s<>]+|\/[A-Za-z0-9_/%.-]+(?:\?[^'"\s<>]*)?)/g) || [];
       for (const candidate of urls) pushUrl(candidate, 'onclick-url', title);
     }
+    element = walker.nextNode();
   }
 
-  const html = String(document.documentElement?.innerHTML || '').slice(0, 1_200_000);
   const pathProbe = `${pattern.prefix}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const relativeRe = new RegExp(`${pathProbe}\\d+${escapeRegex(pattern.suffix || '')}(?:[?#][^'"\\s<>]*)?`, 'g');
-  let match;
-  let guard = 0;
-  while ((match = relativeRe.exec(html)) && guard < 400) {
-    guard += 1;
-    pushUrl(match[0], 'page-html-literal', '');
+  let remainingScriptChars = 1_200_000;
+  for (const script of document.scripts || []) {
+    if (remainingScriptChars <= 0 || episodes.length >= 120) break;
+    const text = String(script.textContent || '').slice(0, remainingScriptChars);
+    remainingScriptChars -= text.length;
+    relativeRe.lastIndex = 0;
+    let match;
+    let guard = 0;
+    while ((match = relativeRe.exec(text)) && guard < 400 && episodes.length < 120) {
+      guard += 1;
+      pushUrl(match[0], 'page-script-literal', '');
+    }
   }
   return { episodes: episodes.slice(0, 120), frameUrl: location.href };
 }
