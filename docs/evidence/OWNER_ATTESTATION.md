@@ -1,8 +1,10 @@
-# Owner creation attestation — private candidate 3.7.13
+# Owner creation attestation — 3.7.13 prerelease
 
 Recorded: 2026-08-17 (America/Chicago)
 
 Candidate source commit: `21cd0caa582384e3e0d5a7b4df3c8e5071e30fda`
+
+> This attestation was recorded during private staging and remains a provenance record after public source publication; it is not independent legal proof or binary-release approval.
 
 ## Owner statement
 

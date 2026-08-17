@@ -2,11 +2,11 @@
 
 ## Supported state
 
-Version 3.7.13 is a private release-readiness candidate. It is not yet a supported public release.
+Version `3.7.13` is a public-source prerelease candidate. It is not a supported public binary release and has not been published to the Chrome Web Store.
 
 ## Reporting
 
-Do not post a suspected vulnerability, sensitive URL, authentication detail, or private diagnostic report in a public issue. Use GitHub private vulnerability reporting after the repository is published; until then, contact the maintainer privately through the profile contact channel.
+Do not post a suspected vulnerability, sensitive URL, authentication detail, or private diagnostic report in a public issue. Use **Report a vulnerability** in this repository's Security tab; GitHub private vulnerability reporting is enabled. Use only synthetic or thoroughly redacted evidence.
 
 ## Product boundary
 

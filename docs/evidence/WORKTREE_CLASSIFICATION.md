@@ -4,7 +4,9 @@ Date reviewed: 2026-08-17
 
 Original commit: `af23d5eac76dc68fb1a0711869f17a376223a512`
 
-Candidate state: private release-readiness snapshot; not a tagged or public release
+Candidate state when reviewed: private release-readiness snapshot; now retained as historical evidence for a public-source prerelease
+
+> The repository has since become public. This classification preserves the earlier worktree review and does not describe the current visibility or imply a supported binary release.
 
 The pre-existing worktree was preserved outside the repository before review. Every modified, deleted, and untracked path present in that snapshot is classified below. No path was classified as unclear after source, reference, build, and automated-gate review.
 

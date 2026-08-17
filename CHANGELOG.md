@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.7.13 - 2026-08-17 (private candidate)
+## 3.7.13 - 2026-08-17 (public-source prerelease)
 
 - Replace the report filename/size-only screen with a field-by-field exposure table and literal, searchable, selectable previews for every generated text file.
 - Minimize default reports by omitting titles and filenames, hashing hostname/path correlation values, and removing query names, query values, local paths, blob identifiers, URL credentials, and secret-shaped fields.

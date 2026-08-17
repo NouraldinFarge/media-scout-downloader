@@ -1,6 +1,8 @@
-# Report privacy review — private candidate 3.7.13
+# Report privacy review — historical private-stage checkpoint for 3.7.13
 
 Status: **PASS for the local P0 report contract; real-browser UI verification remains a P1 browser-matrix item.**
+
+> The source is now public. This record remains bound to the cited P0 commit and does not establish current exact-artifact browser, accessibility, store, or supported-release readiness.
 
 Review date: 2026-08-17 (America/Chicago)
 

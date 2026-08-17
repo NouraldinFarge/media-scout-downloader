@@ -44,4 +44,4 @@ Use Diagnostics to clear queue history, detected media, or learning data within 
 
 The use of information received from Google APIs will adhere to the Chrome Web Store User Data Policy, including the Limited Use requirements.
 
-This document describes the private 3.7.13 candidate. It is not a claim of legal compliance, public availability, or Chrome Web Store approval.
+This document describes the public-source `3.7.13` prerelease candidate. Public source availability is not a claim of legal compliance, a supported binary release, or Chrome Web Store approval.
