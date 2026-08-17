@@ -1094,8 +1094,8 @@
     },
     {
       "path": "test-harness/browser-e2e.mjs",
-      "bytes": 19736,
-      "sha256": "a72e064a2f3e2570ceb476189b7818025a624347dcbe36f98b771a37694dc4a3",
+      "bytes": 19873,
+      "sha256": "59a70c713baf91d16cd06451f37576738dcbd9f90b3fcce80204769dd5818b99",
       "licenseStatus": "Covered by repository LICENSE.md (MIT License; SPDX MIT).",
       "aiAssistance": "AI coding agents assisted with private drafting/review; human owner retains publication and rights responsibility.",
       "ownerAttestationStatus": "Owner creation statement recorded 2026-08-17; see docs/evidence/OWNER_ATTESTATION.md.",

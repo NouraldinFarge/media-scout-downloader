@@ -15,6 +15,7 @@ const browserExecutable = process.env.MEDIA_SCOUT_BROWSER === 'playwright' ? chr
 const browserLabel = process.env.MEDIA_SCOUT_BROWSER_LABEL || path.basename(browserExecutable || 'browser', path.extname(browserExecutable || ''));
 const browserExecutableVersion = process.env.MEDIA_SCOUT_BROWSER_VERSION || 'not supplied';
 const candidateCommit = process.env.MEDIA_SCOUT_CANDIDATE_COMMIT || 'working tree';
+const artifactSha256 = process.env.MEDIA_SCOUT_ARTIFACT_SHA256 || 'unpacked working build';
 const resultRoot = path.join(root, 'test-results', 'browser', slug(browserLabel));
 
 if (!browserExecutable) throw new Error('Set MEDIA_SCOUT_BROWSER to the exact Chrome-compatible browser executable.');
@@ -155,6 +156,7 @@ try {
     operatingSystem: `${os.type()} ${os.release()} ${os.arch()}`,
     candidateCommit,
     extensionVersion: JSON.parse(manifestBytes).version,
+    extensionArtifactSha256: artifactSha256,
     extensionManifestSha256: createHash('sha256').update(manifestBytes).digest('hex'),
     fixtureManifestSha256: createHash('sha256').update(fixtureManifestBytes).digest('hex'),
     profileKind: 'disposable temporary directory',
