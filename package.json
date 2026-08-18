@@ -34,7 +34,8 @@
     "evidence:report-sample": "node test-harness/generate-sanitized-report-sample.mjs",
     "evidence:provenance": "node test-harness/generate-source-inventory.mjs",
     "build": "node test-harness/build-extension.mjs",
-    "artifact:inspect": "node test-harness/verify-repository.mjs",
+    "media:verify": "node test-harness/verify-media.mjs",
+    "artifact:inspect": "node test-harness/verify-repository.mjs && npm run media:verify",
     "release:build": "node test-harness/build-release.mjs",
     "release:reproducibility": "node test-harness/test-release-reproducibility.mjs",
     "check": "npm run format:check && npm run lint && npm run syntax:check && npm run invariants:check && npm run coverage && npm run test:fixtures && npm run performance"

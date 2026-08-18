@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a bounded, permission-respecting improvement.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Proposals must preserve Media Scout's local-first, user-initiated, permission-scoped model. Requests to decrypt DRM, bypass authentication/paywalls, evade CORS, scrape hidden identifiers, or add silent broad access will not be accepted.
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Safety boundary
+      options:
+        - label: This proposal is for media the user owns or is authorized to save.
+          required: true
+        - label: This proposal does not bypass access controls, encryption, authentication, paywalls, or browser permission prompts.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the user problem without including private browsing data.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and failure state
+      description: Explain the bounded happy path, required permission, and how the feature fails closed.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Suggested controlled validation
+      description: Describe synthetic fixtures, accessibility checks, and abuse cases that should be tested.

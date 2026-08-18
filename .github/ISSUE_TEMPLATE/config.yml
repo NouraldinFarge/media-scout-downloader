@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/NouraldinFarge/media-scout-downloader/security/advisories/new
+    about: Report vulnerabilities, access-control bypasses, or sensitive-data exposure privately.
+  - name: Support and safe evidence guide
+    url: https://github.com/NouraldinFarge/media-scout-downloader/blob/main/SUPPORT.md
+    about: Read the support boundary before sharing redacted diagnostics.

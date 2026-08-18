@@ -32,6 +32,8 @@ for (const file of relativeStagedFiles) {
 
 for (const required of [
   'LICENSE.md',
+  'CODE_OF_CONDUCT.md',
+  'SUPPORT.md',
   'PROVENANCE.md',
   'PRIVACY.md',
   'SECURITY.md',
@@ -39,6 +41,7 @@ for (const required of [
   'TEST_PLAN.md',
   'DOWNLOAD_ALLOW_LIST.md',
   'docs/THREAT_MODEL.md',
+  'docs/media/README.md',
   'docs/evidence/EVIDENCE_LEDGER.md',
   'docs/evidence/OWNER_ATTESTATION.md'
 ]) {
