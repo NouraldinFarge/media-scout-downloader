@@ -136,6 +136,10 @@ Media Scout has no analytics, ads, telemetry service, cloud account, or remote c
 
 See [`PRIVACY.md`](PRIVACY.md), [`SECURITY.md`](SECURITY.md), and [`CHANGELOG.md`](CHANGELOG.md). Use the extension only for content you own or are authorized to save.
 
+## AI assistance and accountability
+
+This project was developed with substantial AI-agent assistance. Nouraldin Farge defined the product requirements, architecture, safety and privacy boundaries, reviewed and validated the changes, and retains responsibility for published claims and release decisions. AI-produced and human-produced changes are treated as untrusted until they pass the repository checks and human review; automated validation does not replace final release approval.
+
 ## License
 
 Media Scout Downloader is licensed under the [MIT License](LICENSE.md). The software license does not grant rights to media, websites, services, or other third-party content; use remains limited to content you own or are authorized to save.
