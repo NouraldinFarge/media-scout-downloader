@@ -120,6 +120,7 @@ try {
   await sidepanel.locator('[data-focus-key="inspector-filter"]').fill('candidate=749');
   await sidepanel.waitForFunction(() => document.querySelectorAll('#inspector .candidate-card').length === 1);
   accessibilityResults.inspector = await assertNoBlockingAxeViolations(sidepanel, 'side panel Inspector route');
+  await sidepanel.screenshot({ path: path.join(resultRoot, 'inspector-route.png') });
   const responsive = await verifyResponsiveAndMediaPreferences(sidepanel);
   const progressAccessibility = await verifyQueueProgress(worker, sidepanel);
   accessibilityResults.queue = await assertNoBlockingAxeViolations(sidepanel, 'side panel Queue route');
@@ -127,6 +128,9 @@ try {
   const options = await context.newPage();
   await options.goto(`chrome-extension://${extensionId}/src/options/options.html`, { waitUntil: 'domcontentloaded' });
   await options.waitForSelector('#save');
+  await options.setViewportSize({ width: 1280, height: 900 });
+  await options.evaluate(() => scrollTo(0, 0));
+  await options.screenshot({ path: path.join(resultRoot, 'settings-overview.png') });
   const originalTemplate = await options.locator('#filenameTemplate').inputValue();
   await options.locator('#filenameTemplate').fill('گزارش-שלום-{indexSuffix}.{extension}');
   await options.waitForFunction(() => /گزارش-שלום/.test(document.querySelector('#filenameDryRun')?.textContent || ''));
@@ -141,6 +145,8 @@ try {
   await options.locator('#save').click();
   accessibilityResults.settings = await assertNoBlockingAxeViolations(options, 'settings');
   await options.screenshot({ path: path.join(resultRoot, 'settings.png'), fullPage: true });
+
+  await captureRecruiterSocialPreview(context, resultRoot);
 
   assert.deepEqual(pageErrors, [], `page errors: ${pageErrors.join('; ')}`);
   assert.deepEqual(consoleErrors, [], `console errors: ${consoleErrors.join('; ')}`);
@@ -448,4 +454,66 @@ function slug(value) {
 
 function round(value) {
   return Math.round(value * 1000) / 1000;
+}
+
+async function captureRecruiterSocialPreview(context, outputRoot) {
+  const reportBytes = await readFile(path.join(outputRoot, 'report-route.png'));
+  const iconBytes = await readFile(path.join(extensionPath, 'assets', 'icons', 'icon128.png'));
+  const page = await context.newPage();
+  try {
+    await page.setViewportSize({ width: 1280, height: 640 });
+    await page.setContent(`<!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            * { box-sizing: border-box; }
+            html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
+            body {
+              color: #f7f8ff;
+              font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              background:
+                radial-gradient(circle at 12% 10%, rgba(100, 88, 255, .36), transparent 34%),
+                radial-gradient(circle at 88% 20%, rgba(0, 203, 255, .20), transparent 35%),
+                #070b14;
+            }
+            main { display: grid; grid-template-columns: 1.04fr .96fr; height: 100%; padding: 54px 56px; gap: 48px; }
+            .copy { display: flex; flex-direction: column; justify-content: center; }
+            .brand { display: flex; align-items: center; gap: 18px; margin-bottom: 30px; }
+            .brand img { width: 82px; height: 82px; border-radius: 22px; box-shadow: 0 18px 60px rgba(0, 203, 255, .22); }
+            .eyebrow { color: #27dcff; font-size: 23px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+            h1 { margin: 0; font-size: 68px; line-height: .98; letter-spacing: -.045em; }
+            .lede { margin: 26px 0 28px; max-width: 650px; color: #c6cbe1; font-size: 25px; line-height: 1.36; }
+            .chips { display: flex; flex-wrap: wrap; gap: 12px; }
+            .chips span { border: 1px solid #35405c; border-radius: 999px; padding: 9px 14px; background: rgba(20, 27, 43, .88); color: #eaf0ff; font-size: 16px; font-weight: 700; }
+            .status { margin-top: 28px; color: #7cf7bc; font-size: 18px; font-weight: 800; }
+            .visual { position: relative; display: flex; align-items: center; }
+            .visual::before { content: ""; position: absolute; inset: 52px -22px 18px 42px; border-radius: 42px; background: linear-gradient(135deg, rgba(112, 91, 255, .30), rgba(0, 211, 255, .12)); filter: blur(24px); }
+            .visual img { position: relative; width: 100%; border: 1px solid #36405a; border-radius: 26px; box-shadow: 0 32px 80px rgba(0, 0, 0, .50); }
+            .proof { position: absolute; right: 20px; bottom: 26px; z-index: 2; border-radius: 18px; padding: 14px 18px; background: rgba(7, 11, 20, .92); border: 1px solid #3c4968; color: #d8e1ff; font-size: 15px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <main>
+            <section class="copy">
+              <div class="brand">
+                <img alt="" src="data:image/png;base64,${iconBytes.toString('base64')}">
+                <div class="eyebrow">Media Scout Downloader</div>
+              </div>
+              <h1>Find visible media.<br>Keep control local.</h1>
+              <p class="lede">Permission-scoped Manifest V3 engineering with bounded detection, explicit failure states, redacted reports, and reproducible verification.</p>
+              <div class="chips"><span>JavaScript</span><span>Playwright</span><span>CodeQL</span><span>Local-first</span></div>
+              <div class="status">Public source · Unreleased prerelease</div>
+            </section>
+            <section class="visual">
+              <img alt="" src="data:image/png;base64,${reportBytes.toString('base64')}">
+              <div class="proof">9 test suites · 16 controlled endpoints · zero runtime dependencies</div>
+            </section>
+          </main>
+        </body>
+      </html>`);
+    await page.screenshot({ path: path.join(outputRoot, 'github-social-preview.png') });
+  } finally {
+    await page.close();
+  }
 }

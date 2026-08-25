@@ -8,6 +8,39 @@ Media Scout Downloader is a local-first Chrome Manifest V3 extension for finding
 
 > **Repository status:** The `3.7.13` source is public for review under the MIT License. It remains an unreleased prerelease: there is no Chrome Web Store listing or supported public binary, and the manual Chrome/Brave, assistive-technology, artifact, and release-approval gates in [`TEST_PLAN.md`](TEST_PLAN.md) remain open.
 
+## Product tour
+
+These product states were captured from the real unpacked `3.7.13` extension in a disposable Playwright Chromium profile. They use only controlled loopback fixtures and generated state; no browsing history, account data, private URLs, or user media appears in them. Capture details and asset checks are recorded in [`docs/media/README.md`](docs/media/README.md).
+
+### Bounded inspector
+
+[![Inspector showing one controlled synthetic media candidate](docs/media/inspector-route.png)](docs/media/inspector-route.png)
+
+The inspector separates eligible media from rejected or unsupported candidates and keeps its evidence inside a bounded, readable workspace. [Open the full-size inspector capture.](docs/media/inspector-route.png)
+
+### Redacted report preview
+
+[![Report preview explaining default and always-on redaction](docs/media/report-route.png)](docs/media/report-route.png)
+
+The export preview explains default redaction, always-redacted fields, and the user's final review responsibility before a report leaves the device. [Open the full-size report capture.](docs/media/report-route.png)
+
+### Permission-aware settings
+
+[![Settings overview for local-first defaults and permission controls](docs/media/settings-overview.png)](docs/media/settings-overview.png)
+
+Settings make local-first behavior, advanced discovery, file access, and per-site permissions visible without implying that optional access is automatic. [Open the full-size settings capture.](docs/media/settings-overview.png)
+
+## Verified engineering evidence
+
+| Evidence | Current result | Scope and boundary |
+| --- | --- | --- |
+| Regression gate | 9 self-test suites plus repository assertions | Exercises validators, policy decisions, settings normalization, report privacy, download strategy selection, queue behavior, and ZIP safety. |
+| Targeted coverage | 91.74% statements/lines, 72.51% branches, 90.97% functions | Applies only to `validators.js`, `report-privacy.js`, `download-allow-list.js`, and `report-manager.js`; it is **not** whole-extension coverage. |
+| Controlled fixture server | 16 endpoints and 11 generated-file hashes | Covers direct media, HLS/DASH, empty/slow/auth/expired/CORS cases, and deterministic local fixtures without third-party media. |
+| Browser smoke | Real unpacked extension; zero serious/critical axe findings in the tested routes | Uses a disposable Playwright Chromium profile and controlled synthetic state. Manual Chrome/Brave and assistive-technology gates remain open. |
+| Performance gate | 7 repeatable Node benchmarks within explicit budgets | Measures bounded parsing, storage, grouping, reports, restart hydration, and ZIP assembly; it is not production telemetry. |
+| Staging build | 40 allowlisted files and zero runtime dependencies | CI retains an unsigned verification-only candidate briefly; it is not a supported public binary or release. |
+
 ## What it does
 
 - Scans visible `<video>`, `<audio>`, source, track, poster, metadata, selected page literals, and recent Resource Timing entries.
@@ -102,6 +135,10 @@ The public source tree is backed by green GitHub CI and CodeQL runs, plus an exa
 Media Scout has no analytics, ads, telemetry service, cloud account, or remote configuration channel. Reports are generated only on request and exclude raw URLs and query-parameter names by default. Site access can be revoked from Settings.
 
 See [`PRIVACY.md`](PRIVACY.md), [`SECURITY.md`](SECURITY.md), and [`CHANGELOG.md`](CHANGELOG.md). Use the extension only for content you own or are authorized to save.
+
+## AI assistance and accountability
+
+This project was developed with substantial AI-agent assistance. Nouraldin Farge defined the product requirements, architecture, safety and privacy boundaries, reviewed and validated the changes, and retains responsibility for published claims and release decisions. AI-produced and human-produced changes are treated as untrusted until they pass the repository checks and human review; automated validation does not replace final release approval.
 
 ## License
 

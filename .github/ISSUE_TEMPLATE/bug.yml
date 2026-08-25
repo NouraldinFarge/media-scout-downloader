@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible defect with synthetic, redacted evidence.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Media Scout is public source but remains an unreleased prerelease. Do not paste private URLs, page titles, filenames, extension IDs, local paths, account details, tokens, or unredacted reports. Use controlled or synthetic replacements.
+
+        Security issues, permission-boundary failures, and sensitive-data exposure belong in a [private security report](https://github.com/NouraldinFarge/media-scout-downloader/security/advisories/new), not a public issue.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Evidence safety
+      options:
+        - label: I reproduced this with content I own or am authorized to test.
+          required: true
+        - label: I removed private URLs, identifiers, filenames, paths, and account data.
+          required: true
+        - label: This is not a security vulnerability or access-control bypass.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Source version or commit
+      placeholder: "3.7.13 or commit SHA"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Synthetic environment
+      description: Operating system plus exact Chrome/Chromium version; do not include an extension ID.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Give the smallest controlled fixture, expected result, and actual result.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Include only the minimum inspected, sanitized output needed to understand the defect.
+      render: text
